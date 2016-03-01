@@ -1,8 +1,8 @@
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <queue>
 #include <unordered_set>
-#include <bitset>
 #include <map>
 #include <stack>
 
@@ -19,13 +19,14 @@ int main()
     std::ios::sync_with_stdio(true);
 
 #ifdef REDIRECT_TEST_FILE_TO_INPUT
-    FILE* input_file = fopen("test/test-data.txt", "r");
-    int fd = fileno(input_file);
-    dup2(fd, STDIN_FILENO);
+    std::ifstream soubor("test/test-data.txt", std::ios::in);
+    std::istream& vstup = soubor;
+#else
+    std::istream& vstup = std::cin;
 #endif
 
     std::string line;
-    while(std::getline(std::cin, line))
+    while(std::getline(vstup, line))
     {
         if (line[0] == 'S')
         {
@@ -42,7 +43,7 @@ int main()
 
     std::cout << "R" << std::endl;  // TIMER STARTS
 
-    while(std::getline(std::cin, line))
+    while(std::getline(vstup, line))
     {
         if (line[0] == 'F')
         {
@@ -75,9 +76,11 @@ int main()
         switch (action)
         {
             case 'A':
+                //graph.add_edge(from, to);
                 jobQueue.add_job(JobType::AddEdge, from, to);
                 break;
             case 'D':
+                //graph.remove_edge(from, to);
                 jobQueue.add_job(JobType::RemoveEdge, from, to);
                 break;
             case 'Q':
@@ -91,7 +94,7 @@ int main()
     threadPool.stop();
 
 #ifdef REDIRECT_TEST_FILE_TO_INPUT
-    fclose(input_file);
+    soubor.close();
 #endif
 
     return 0;

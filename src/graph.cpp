@@ -16,31 +16,45 @@ void Graph::add_edge(sigint from, sigint to)
     if (!this->has_vertex(from)) this->add_vertex(from);
     if (!this->has_vertex(to)) this->add_vertex(to);
 
-    if (!this->nodes.at(from).count(to))
+    for (sigint edge : this->nodes.at(from).edges_out)
     {
-        if (this->nodes.at(from).size() == 0)
-        {
-            this->nodes.at(from).reserve(50);
-        }
-        this->nodes.at(from).insert(to); }
+        if (edge == to) return;
+    }
+
+    this->nodes.at(from).edges_out.push_back(to);
+    this->nodes.at(to).edges_in.push_back(from);
 }
 
 void Graph::remove_edge(sigint from, sigint to)
 {
-    if (!this->has_vertex(from) || !this->has_vertex(to)) return;
+    if (!this->has_vertex(from)) return;
 
-    this->nodes.at(from).erase(to);
+    std::vector<sigint>& edges = this->nodes.at(from).edges_out;
+    size_t size = edges.size();
+
+    for (size_t i = 0; i < size; i++)
+    {
+        if (edges[i] == to)
+        {
+            edges.erase(edges.begin() + i);
+
+            edges = this->nodes.at(to).edges_in;
+            size = edges.size();
+            for (size_t j = 0; j < size; j++)
+            {
+                if (edges[j] == from)
+                {
+                    edges.erase(edges.begin() + j);
+                    return;
+                }
+            }
+
+            return;
+        }
+    }
 }
 
 void Graph::add_vertex(sigint num)
 {
-    this->nodes.insert({num, std::unordered_set<sigint>()});
-}
-
-void Graph::one_forward(sigint from, std::vector<sigint>& edges) const
-{
-    for (auto edge : this->nodes.at(from))
-    {
-        edges.push_back(edge);
-    }
+    this->nodes.insert({num, Vertex()});
 }

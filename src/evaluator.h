@@ -17,32 +17,28 @@ public:
         if (!graph.has_vertex(from) || !graph.has_vertex(to)) return -1;
         if (from == to) return 0;
 
-        distances.clear();
         distances.insert({from, 0});
 
         std::queue<sigint> q;
         q.push(from);
 
-        std::vector<sigint> edges;
-
         while (!q.empty())
         {
             sigint current = q.front();
             q.pop();
+            uint64_t distance = distances[current];
 
-            edges.clear();
-            graph.one_forward(current, edges);
-            for (sigint neighbor : edges)
+            for (sigint neighbor : graph.nodes[current].edges_out)
             {
                 if (neighbor == to)
                 {
-                    return distances[current] + 1;
+                    return distance + 1;
                 }
 
                 if (!distances.count(neighbor))
                 {
                     q.push(neighbor);
-                    distances.insert({neighbor, distances[current] + 1});
+                    distances.insert({neighbor, distance + 1});
                 }
             }
         }

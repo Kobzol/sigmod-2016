@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-INIT_SIZE=500
-WORKLOAD_SIZE=500
+INIT_SIZE=30000000000000
+WORKLOAD_SIZE=1000
 pushd ${DIR}
 (
 head -n ${INIT_SIZE} init-file.txt;

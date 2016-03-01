@@ -6,6 +6,19 @@
 
 #include "settings.h"
 
+struct Vertex
+{
+public:
+    Vertex()
+    {
+        this->edges_out.reserve(50);
+        this->edges_in.reserve(50);
+    }
+
+    std::vector<sigint> edges_out;
+    std::vector<sigint> edges_in;
+};
+
 class Graph
 {
 public:
@@ -15,15 +28,12 @@ public:
     void add_edge(sigint from, sigint to);
     void remove_edge(sigint from, sigint to);
 
-    void one_forward(sigint from, std::vector<sigint>& edges) const;
-    void one_backward(sigint from, std::vector<sigint>& edges) const = delete;
-
     inline bool has_vertex(sigint id) const
     {
         return this->nodes.count(id) != 0;
     }
 
-    std::unordered_map<sigint, std::unordered_set<sigint>> nodes;
+    std::unordered_map<sigint, Vertex> nodes;
 
 private:
     Graph(const Graph& other) = delete;
