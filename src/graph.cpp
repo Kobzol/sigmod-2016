@@ -22,7 +22,9 @@ void Graph::add_edge(sigint from, sigint to)
     }
 
     this->nodes.at(from).edges_out.push_back(to);
-    this->nodes.at(to).edges_in.push_back(from);
+#ifdef USE_UNION_FIND
+    this->nodes.at(from).join(*this, this->nodes.at(to));
+#endif
 }
 
 void Graph::remove_edge(sigint from, sigint to)
@@ -37,18 +39,6 @@ void Graph::remove_edge(sigint from, sigint to)
         if (edges[i] == to)
         {
             edges.erase(edges.begin() + i);
-
-            edges = this->nodes.at(to).edges_in;
-            size = edges.size();
-            for (size_t j = 0; j < size; j++)
-            {
-                if (edges[j] == from)
-                {
-                    edges.erase(edges.begin() + j);
-                    return;
-                }
-            }
-
             return;
         }
     }
@@ -56,5 +46,5 @@ void Graph::remove_edge(sigint from, sigint to)
 
 void Graph::add_vertex(sigint num)
 {
-    this->nodes.insert({num, Vertex()});
+    this->nodes.emplace(num, num);
 }

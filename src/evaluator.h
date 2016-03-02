@@ -17,6 +17,13 @@ public:
         if (!graph.has_vertex(from) || !graph.has_vertex(to)) return -1;
         if (from == to) return 0;
 
+#ifdef USE_UNION_FIND
+        if (graph.nodes[from].get_parent(graph) != graph.nodes[to].get_parent(graph))
+        {
+            return -1;
+        }
+#endif
+
         distances.insert({from, 0});
 
         std::queue<sigint> q;

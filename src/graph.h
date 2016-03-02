@@ -5,19 +5,8 @@
 #include <unordered_set>
 
 #include "settings.h"
+#include "vertex.h"
 
-struct Vertex
-{
-public:
-    Vertex()
-    {
-        this->edges_out.reserve(50);
-        this->edges_in.reserve(50);
-    }
-
-    std::vector<sigint> edges_out;
-    std::vector<sigint> edges_in;
-};
 
 class Graph
 {

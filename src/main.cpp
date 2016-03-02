@@ -11,8 +11,10 @@
 #include "job.h"
 
 Graph graph;
+#ifdef USE_THREADS
 ThreadPool threadPool;
 JobQueue jobQueue(JOB_QUEUE_SIZE);
+#endif
 
 int main()
 {
@@ -43,10 +45,13 @@ int main()
 
     std::cout << "R" << std::endl;  // TIMER STARTS
 
+    int query = 0;
+
     while (std::getline(vstup, line))
     {
         if (line[0] == 'F')
         {
+#ifdef USE_THREADS
             std::unique_lock<std::mutex> lock(jobQueue.jobMutex);
             jobQueue.batchEnded = true;
 
@@ -65,7 +70,7 @@ int main()
             std::cout << ss.str();
 
             jobQueue.clear_results();
-
+#endif
             continue;
         }
 
@@ -77,20 +82,32 @@ int main()
         switch (action)
         {
             case 'A':
-                //graph.add_edge(from, to);
+#ifdef USE_THREADS
                 jobQueue.add_job(JobType::AddEdge, from, to);
+#else
+                graph.add_edge(from, to);
+#endif
                 break;
             case 'D':
-                //graph.remove_edge(from, to);
+#ifdef USE_THREADS
                 jobQueue.add_job(JobType::RemoveEdge, from, to);
+#else
+                graph.remove_edge(from, to);
+#endif
                 break;
             case 'Q':
+#ifdef USE_THREADS
                 jobQueue.add_job(JobType::Query, from, to);
+#else
+                std::cout << GraphEvaluator::query(from, to) << std::endl;
+#endif
                 break;
             default:
                 break;
         }
     }
+
+    std::cout << query << std::endl;
 
     // threads are detached, so they die with the main thread
     //threadPool.terminate();
