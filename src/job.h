@@ -24,7 +24,7 @@ public:
     inline void pop() { this->waiting--; }
 
     bool modification;
-    std::atomic<size_t> waiting;
+    size_t waiting;
 };
 
 Barrier BarrierMemory[BARRIER_BUFFER_COUNT];
@@ -84,7 +84,14 @@ public:
 
     void add_job(JobType type, sigint from, sigint to)
     {
-        std::lock_guard<std::mutex> guard(this->lock);
+        std::unique_lock<std::mutex> guard(this->lock);
+
+#ifdef THREAD_USE_JOB_SYNC
+        while (this->size >= this->jobs.capacity)
+        {
+            this->bufferFull.wait(guard);
+        }
+#endif
 
         Barrier* barrier = this->barrier;
         Barrier* modifyBarrier = barrier;
@@ -93,6 +100,7 @@ public:
         if (type != JobType::Query || this->barrier->modification)
         {
             Barrier* newBarrier = &BarrierMemory[BarrierIndex++];
+            assert(BarrierIndex < BARRIER_BUFFER_COUNT);
             newBarrier->modification = type != JobType::Query;
             newBarrier->waiting = 1;
             modifyBarrier = newBarrier;
@@ -107,26 +115,48 @@ public:
         this->end = (this->end + 1) % this->jobs.size;
 
         this->size++;
+
+#ifdef THREAD_USE_JOB_SYNC
+        this->bufferEmpty.notify_one();
+#endif
+
         assert(this->size <= this->jobs.capacity);
     }
 
-    Job pop_job() {
-        std::lock_guard<std::mutex> guard(this->lock);
+    Job pop_job()
+    {
+        std::unique_lock<std::mutex> guard(this->lock);
 
-        if (this->size < 1) return Job(JobType::Invalid);
-
-        Job& job = this->jobs[this->start];
-        if ((job.type == JobType::Query && !job.barrier->modification) || job.barrier->is_ready())
+#ifdef THREAD_USE_JOB_SYNC
+        this->bufferEmpty.wait(guard, [this] { return this->is_job_available(); });
+#else
+        if (!this->is_job_available())
         {
-            size_t position = this->start;
-
-            this->start = (this->start + 1) % this->jobs.size;
-            this->size--;
-            this->jobs_in_work++;
-
-            return this->jobs[position];
+            return Job(JobType::Invalid);
         }
-        else return Job(JobType::Invalid);
+#endif
+
+        Job job = this->jobs[this->start];
+
+        this->start = (this->start + 1) % this->jobs.size;
+        this->size--;
+        this->jobs_in_work++;
+
+#ifdef THREAD_USE_JOB_SYNC
+        if (this->size == this->jobs.capacity - 1)
+        {
+            this->bufferFull.notify_one();
+        }
+#endif
+
+        return job;
+    }
+
+    bool is_job_available()
+    {
+        if (this->size == 0) return false;
+        if (this->jobs[this->start].type == JobType::Query && !this->jobs[this->start].barrier->modification) return true;
+        return this->jobs[this->start].barrier->is_ready();
     }
 
     void add_result(Job& job, int64_t result)
@@ -135,17 +165,21 @@ public:
 
         if (job.type == JobType::Query)
         {
-            this->results[job.id] = result;
+            this->results.insert({job.id, result});
         }
 
         job.modifyBarrier->pop();
 
         this->jobs_in_work--;
 
+#ifdef THREAD_USE_JOB_SYNC
+        this->bufferEmpty.notify_one();
+#endif
+
         if (this->batchEnded && this->size == 0 && this->jobs_in_work == 0)
         {
             std::unique_lock<std::mutex> lock(this->jobMutex);
-            this->conditionVariable.notify_one();
+            this->batchEndCV.notify_one();
             this->reset();
         }
     }
@@ -167,12 +201,17 @@ public:
     {
         this->results.clear();
     }
+    void quit()
+    {
+        this->quit_value = true;
+    }
 
     size_t jobs_in_work;
     std::mutex jobMutex;
-    std::condition_variable conditionVariable;
+    std::condition_variable batchEndCV;
     bool batchEnded = false;
 
+    std::condition_variable bufferEmpty;
 private:
     size_t size;
     size_t start;
@@ -180,6 +219,8 @@ private:
     std::mutex lock;
     Vector<Job> jobs;
     Barrier* barrier;
+    bool quit_value = false;
 
     std::map<size_t, int64_t> results;
+    std::condition_variable bufferFull;
 };

@@ -1,13 +1,14 @@
 TARGET=sigmod
-CPP_FLAGS=-std=c++11 -O2 -march=native -Wall -Wextra -pthread
+CPP_FLAGS=-std=c++11 -march=native -pthread -O2 -Wall -Wextra
+CXX_COMPILER=g++
 
 all: release
 
 release: src/*.cpp
-	g++ $(CPP_FLAGS) $^ -o $(TARGET)
+	$(CXX_COMPILER) $(CPP_FLAGS) $^ -o $(TARGET)
 
 debug: src/*.cpp
-	g++ $(CPP_FLAGS) -g -fno-omit-frame-pointer -O0 $^ -o $(TARGET)
+	$(CXX_COMPILER) $(CPP_FLAGS) -g -O0 $^ -o $(TARGET)
 
 clean:
 	rm -f $(TARGET)

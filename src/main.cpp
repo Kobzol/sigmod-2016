@@ -26,7 +26,7 @@ int main()
 #endif
 
     std::string line;
-    while(std::getline(vstup, line))
+    while (std::getline(vstup, line))
     {
         if (line[0] == 'S')
         {
@@ -43,15 +43,16 @@ int main()
 
     std::cout << "R" << std::endl;  // TIMER STARTS
 
-    while(std::getline(vstup, line))
+    while (std::getline(vstup, line))
     {
         if (line[0] == 'F')
         {
-            if (jobQueue.get_size() > 0 || jobQueue.jobs_in_work > 0)
+            std::unique_lock<std::mutex> lock(jobQueue.jobMutex);
+            jobQueue.batchEnded = true;
+
+            while (jobQueue.get_size() > 0 || jobQueue.jobs_in_work > 0)
             {
-                std::unique_lock<std::mutex> lock(jobQueue.jobMutex);
-                jobQueue.batchEnded = true;
-                jobQueue.conditionVariable.wait(lock);
+                jobQueue.batchEndCV.wait(lock);
             }
 
             std::map<size_t, int64_t>& results = jobQueue.get_results();
@@ -91,7 +92,11 @@ int main()
         }
     }
 
-    threadPool.stop();
+    // threads are detached, so they die with the main thread
+    //threadPool.terminate();
+    //jobQueue.quit();
+    //jobQueue.bufferEmpty.notify_all();
+    //threadPool.join();
 
 #ifdef REDIRECT_TEST_FILE_TO_INPUT
     soubor.close();
