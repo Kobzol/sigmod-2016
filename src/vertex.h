@@ -23,7 +23,7 @@ public:
     }
 
     sigint id;
-    std::vector<sigint> edges_out;
+    std::vector<Vertex*> edges_out;
     size_t visited;
 
 #ifdef USE_UNION_FIND

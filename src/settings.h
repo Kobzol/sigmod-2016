@@ -41,4 +41,4 @@ typedef uint32_t sigint;
 #define BARRIER_BUFFER_COUNT JOB_QUEUE_SIZE
 
 // otevře test/test-data.txt a přesměruje jej na standardní vstup aplikace
-#define REDIRECT_TEST_FILE_TO_INPUT
+//#define REDIRECT_TEST_FILE_TO_INPUT

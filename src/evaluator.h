@@ -43,18 +43,17 @@ public:
             q.pop();
             uint64_t distance = current.distance;
 
-            for (sigint neighbor : graph.nodes[current.vertexId].edges_out)
+            for (Vertex* neighbor : graph.nodes[current.vertexId].edges_out)
             {
-                if (neighbor == to)
+                if (neighbor->id == to)
                 {
                     return distance + 1;
                 }
 
-                Vertex& vertex = graph.nodes[neighbor];
-                if (vertex.visited < query_id)
+                if (neighbor->visited < query_id)
                 {
-                    q.push(DistanceInfo(neighbor, distance + 1));
-                    vertex.visited = query_id;
+                    q.push(DistanceInfo(neighbor->id, distance + 1));
+                    neighbor->visited = query_id;
                 }
             }
         }
