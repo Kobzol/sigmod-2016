@@ -44,8 +44,7 @@ int main()
     }
 
     std::cout << "R" << std::endl;  // TIMER STARTS
-
-    int query = 0;
+    size_t query_id = 1;
 
     while (std::getline(vstup, line))
     {
@@ -99,15 +98,13 @@ int main()
 #ifdef USE_THREADS
                 jobQueue.add_job(JobType::Query, from, to);
 #else
-                std::cout << GraphEvaluator::query(from, to) << std::endl;
+                std::cout << GraphEvaluator::query(from, to, query_id++) << std::endl;
 #endif
                 break;
             default:
                 break;
         }
     }
-
-    std::cout << query << std::endl;
 
     // threads are detached, so they die with the main thread
     //threadPool.terminate();

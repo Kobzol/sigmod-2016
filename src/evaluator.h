@@ -7,13 +7,23 @@
 
 extern Graph graph;
 
+struct DistanceInfo
+{
+public:
+    DistanceInfo(sigint vertexId, size_t distance) : vertexId(vertexId), distance(distance)
+    {
+
+    }
+
+    sigint vertexId;
+    size_t distance;
+};
+
 class GraphEvaluator
 {
 public:
-    static int64_t query(sigint from, sigint to)
+    static int64_t query(sigint from, sigint to, size_t query_id)
     {
-        std::unordered_map<sigint, uint64_t> distances;
-
         if (!graph.has_vertex(from) || !graph.has_vertex(to)) return -1;
         if (from == to) return 0;
 
@@ -24,28 +34,27 @@ public:
         }
 #endif
 
-        distances.insert({from, 0});
-
-        std::queue<sigint> q;
-        q.push(from);
+        std::queue<DistanceInfo> q;
+        q.push(DistanceInfo(from, 0));
 
         while (!q.empty())
         {
-            sigint current = q.front();
+            DistanceInfo current = q.front();
             q.pop();
-            uint64_t distance = distances[current];
+            uint64_t distance = current.distance;
 
-            for (sigint neighbor : graph.nodes[current].edges_out)
+            for (sigint neighbor : graph.nodes[current.vertexId].edges_out)
             {
                 if (neighbor == to)
                 {
                     return distance + 1;
                 }
 
-                if (!distances.count(neighbor))
+                Vertex& vertex = graph.nodes[neighbor];
+                if (vertex.visited < query_id)
                 {
-                    q.push(neighbor);
-                    distances.insert({neighbor, distance + 1});
+                    q.push(DistanceInfo(neighbor, distance + 1));
+                    vertex.visited = query_id;
                 }
             }
         }

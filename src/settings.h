@@ -6,7 +6,7 @@
  * Řazení výsledků - hash mapa
  * Conditional variables místo sleepu - hotovo (THREAD_USE_JOB_SYNC)
  * Časová razítka u hran
- * Komponenty (Union Find) - hotovo
+ * Komponenty (Union Find) - základní implementace hotova
  * */
 
 
@@ -20,6 +20,10 @@ typedef uint32_t sigint;
 
 // použít Union-Find pro slabě kontrolu slabě propojených komponent
 #define USE_UNION_FIND
+
+// bude při přidávání a mazání hran kontrolovat, jestli daná hrana už náhodou neexistuje
+// asi zbytecne, pro init testovacich dat je tam jen jedna takova hrana
+//#define CHECK_UNIQUE_EDGES
 
 // povolí použití thread poolu
 //#define USE_THREADS
@@ -37,4 +41,4 @@ typedef uint32_t sigint;
 #define BARRIER_BUFFER_COUNT JOB_QUEUE_SIZE
 
 // otevře test/test-data.txt a přesměruje jej na standardní vstup aplikace
-//#define REDIRECT_TEST_FILE_TO_INPUT
+#define REDIRECT_TEST_FILE_TO_INPUT

@@ -14,7 +14,7 @@ public:
     {
 
     }
-    Vertex(sigint id) : id(id)
+    Vertex(sigint id) : id(id), visited(0)
 #ifdef USE_UNION_FIND
             , parent(id), rank(0)
 #endif
@@ -24,6 +24,7 @@ public:
 
     sigint id;
     std::vector<sigint> edges_out;
+    size_t visited;
 
 #ifdef USE_UNION_FIND
     sigint get_parent(Graph& graph);

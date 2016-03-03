@@ -16,10 +16,16 @@ void Graph::add_edge(sigint from, sigint to)
     if (!this->has_vertex(from)) this->add_vertex(from);
     if (!this->has_vertex(to)) this->add_vertex(to);
 
+#ifdef CHECK_UNIQUE_EDGES
     for (sigint edge : this->nodes.at(from).edges_out)
     {
-        if (edge == to) return;
+        if (edge == to)
+        {
+            this->non_unique++;
+            return;
+        }
     }
+#endif
 
     this->nodes.at(from).edges_out.push_back(to);
 #ifdef USE_UNION_FIND
@@ -39,7 +45,9 @@ void Graph::remove_edge(sigint from, sigint to)
         if (edges[i] == to)
         {
             edges.erase(edges.begin() + i);
+#ifdef CHECK_UNIQUE_EDGES   // je kontrola uz pri vkladani, neni potreba prochazet vsechny
             return;
+#endif
         }
     }
 }

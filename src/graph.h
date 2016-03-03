@@ -23,6 +23,7 @@ public:
     }
 
     std::unordered_map<sigint, Vertex> nodes;
+    size_t non_unique = 0;
 
 private:
     Graph(const Graph& other) = delete;

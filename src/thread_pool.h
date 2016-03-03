@@ -47,7 +47,7 @@ public:
             }
             else
             {
-                result = GraphEvaluator::query(job.from, job.to);
+                result = GraphEvaluator::query(job.from, job.to, job.id);   // TODO ids multithreaded
             }
 
             //std::cerr << "Thread " << this->id << " giving job" << std::endl;
