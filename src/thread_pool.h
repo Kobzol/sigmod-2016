@@ -47,7 +47,7 @@ public:
             }
             else
             {
-                result = GraphEvaluator::query(job.from, job.to, job.id);   // TODO ids multithreaded
+                result = GraphEvaluator::query(job.from, job.to, job.id, this->id);
             }
 
             //std::cerr << "Thread " << this->id << " giving job" << std::endl;
@@ -77,7 +77,7 @@ class ThreadPool
 public:
     ThreadPool()
     {
-        for (int i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
+        for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
         {
             this->threads[i].id = i + 1;
         }
@@ -85,14 +85,14 @@ public:
 
     void terminate()
     {
-        for (int i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
+        for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
         {
             this->threads[i].terminate();
         }
     }
     void join()
     {
-        for (int i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
+        for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
         {
             this->threads[i].join();
         }

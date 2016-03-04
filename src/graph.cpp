@@ -16,10 +16,12 @@ void Graph::add_edge(sigint from, sigint to)
     if (!this->has_vertex(from)) this->add_vertex(from);
     if (!this->has_vertex(to)) this->add_vertex(to);
 
+    Vertex& dest = this->nodes.at(to);
+
 #ifdef CHECK_UNIQUE_EDGES
-    for (sigint edge : this->nodes.at(from).edges_out)
+    for (Vertex* edge : this->nodes.at(from).edges_out)
     {
-        if (edge == to)
+        if (edge == &dest)
         {
             this->non_unique++;
             return;
@@ -27,9 +29,11 @@ void Graph::add_edge(sigint from, sigint to)
     }
 #endif
 
-    this->nodes.at(from).edges_out.push_back(&this->nodes.at(to));
+    Vertex& src = this->nodes.at(from);
+
+    src.edges_out.push_back(&dest);
 #ifdef USE_UNION_FIND
-    this->nodes.at(from).join(*this, this->nodes.at(to));
+    src.join(*this, dest);
 #endif
 }
 
@@ -38,20 +42,29 @@ void Graph::remove_edge(sigint from, sigint to)
     if (!this->has_vertex(from)) return;
 
     std::vector<Vertex*>& edges = this->nodes.at(from).edges_out;
-    size_t size = edges.size();
-
     Vertex* address = &this->nodes.at(to);
+
+#ifdef CHECK_UNIQUE_EDGES   // je kontrola uz pri vkladani, neni potreba prochazet vsechny
+    size_t size = edges.size();
 
     for (size_t i = 0; i < size; i++)
     {
         if (edges[i] == address)
         {
             edges.erase(edges.begin() + i);
-#ifdef CHECK_UNIQUE_EDGES   // je kontrola uz pri vkladani, neni potreba prochazet vsechny
             return;
-#endif
         }
     }
+#else
+    for (size_t i = 0; i < edges.size(); i++)
+    {
+        if (edges[i] == address)
+        {
+            edges.erase(edges.begin() + i);
+            i--;
+        }
+    }
+#endif
 }
 
 void Graph::add_vertex(sigint num)

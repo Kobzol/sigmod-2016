@@ -107,7 +107,7 @@ int main()
 #ifdef USE_THREADS
                 jobQueue.add_job(JobType::Query, from, to);
 #else
-                int64_t result = GraphEvaluator::query(from, to, query_id++);
+                int64_t result = GraphEvaluator::query(from, to, query_id++, 0);
 
 #ifdef COLLECT_STATS
                 QUERY_COUNT++;

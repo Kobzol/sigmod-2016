@@ -26,10 +26,10 @@ typedef uint32_t sigint;
 //#define CHECK_UNIQUE_EDGES
 
 // povolí použití thread poolu
-//#define USE_THREADS
+#define USE_THREADS
 
 // počet vláken v thread poolu pro grafové operace
-#define THREAD_POOL_THREAD_COUNT (3)
+#define THREAD_POOL_THREAD_COUNT (23)
 
 // použít synchronizaci místo čekání pevnou dobu
 #define THREAD_USE_JOB_SYNC
