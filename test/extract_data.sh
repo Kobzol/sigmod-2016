@@ -2,7 +2,7 @@
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 INIT_SIZE=1000000000000000
-WORKLOAD_SIZE=3000
+WORKLOAD_SIZE=5000
 pushd ${DIR}
 (
 head -n ${INIT_SIZE} init-file.txt;

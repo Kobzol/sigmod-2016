@@ -7,16 +7,21 @@
 
 extern Graph graph;
 
+#ifdef COLLECT_STATS
+extern size_t UNION_HITS;
+extern size_t BFS_QUEUE_MAX_SIZE;
+#endif
+
 struct DistanceInfo
 {
 public:
-    DistanceInfo(sigint vertexId, size_t distance) : vertexId(vertexId), distance(distance)
+    DistanceInfo(sigint vertexId, sigint distance) : vertexId(vertexId), distance(distance)
     {
 
     }
 
     sigint vertexId;
-    size_t distance;
+    sigint distance;
 };
 
 class GraphEvaluator
@@ -30,6 +35,9 @@ public:
 #ifdef USE_UNION_FIND
         if (graph.nodes[from].get_parent(graph) != graph.nodes[to].get_parent(graph))
         {
+#ifdef COLLECT_STATS
+            UNION_HITS++;
+#endif
             return -1;
         }
 #endif
@@ -41,18 +49,20 @@ public:
         {
             DistanceInfo current = q.front();
             q.pop();
-            uint64_t distance = current.distance;
 
             for (Vertex* neighbor : graph.nodes[current.vertexId].edges_out)
             {
                 if (neighbor->id == to)
                 {
-                    return distance + 1;
+                    return current.distance + 1;
                 }
 
-                if (neighbor->visited < query_id)
+                if (neighbor->visited < query_id && neighbor->edges_out.size() > 0)
                 {
-                    q.push(DistanceInfo(neighbor->id, distance + 1));
+                    q.push(DistanceInfo(neighbor->id, current.distance + 1));
+#ifdef COLLECT_STATS
+                    BFS_QUEUE_MAX_SIZE = std::max(BFS_QUEUE_MAX_SIZE, q.size());
+#endif
                     neighbor->visited = query_id;
                 }
             }

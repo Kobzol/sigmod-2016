@@ -19,7 +19,7 @@ public:
             , parent(id), rank(0)
 #endif
     {
-        this->edges_out.reserve(50);
+
     }
 
     sigint id;

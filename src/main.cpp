@@ -11,6 +11,14 @@
 #include "job.h"
 
 Graph graph;
+
+#ifdef COLLECT_STATS
+size_t UNION_HITS = 0;
+size_t QUERY_COUNT = 0;
+std::map<int64_t, size_t> QUERY_RESULTS;
+size_t BFS_QUEUE_MAX_SIZE = 0;
+#endif
+
 #ifdef USE_THREADS
 ThreadPool threadPool;
 JobQueue jobQueue(JOB_QUEUE_SIZE);
@@ -95,16 +103,41 @@ int main()
 #endif
                 break;
             case 'Q':
+            {
 #ifdef USE_THREADS
                 jobQueue.add_job(JobType::Query, from, to);
 #else
-                std::cout << GraphEvaluator::query(from, to, query_id++) << std::endl;
+                int64_t result = GraphEvaluator::query(from, to, query_id++);
+
+#ifdef COLLECT_STATS
+                QUERY_COUNT++;
+                if (QUERY_RESULTS.count(result))
+                {
+                    QUERY_RESULTS[result]++;
+                }
+                else QUERY_RESULTS.insert({result, 1});
+#else
+                std::cout << result << std::endl;
 #endif
+#endif
+            }
                 break;
             default:
                 break;
         }
     }
+
+#ifdef COLLECT_STATS
+    std::cout << "BFS queue max size: " << BFS_QUEUE_MAX_SIZE << std::endl;
+    std::cout << "Pocet dotazu: " << QUERY_COUNT << std::endl;
+    std::cout << "Pocet union hitu: " << UNION_HITS << std::endl;
+
+    std::cout << "Histogram vysledku dotazu: " << std::endl;
+    for (auto& pair : QUERY_RESULTS)
+    {
+        std::cout << "Vysledek " << pair.first << " byl nalezen " << pair.second << "x" << std::endl;
+    }
+#endif
 
     // threads are detached, so they die with the main thread
     //threadPool.terminate();
