@@ -8,7 +8,6 @@
 
 #include "graph.h"
 #include "thread_pool.h"
-#include "job.h"
 
 Graph graph;
 
@@ -21,7 +20,6 @@ size_t BFS_QUEUE_MAX_SIZE = 0;
 
 #ifdef USE_THREADS
 ThreadPool threadPool;
-JobQueue jobQueue(JOB_QUEUE_SIZE);
 #endif
 
 int main()
@@ -51,35 +49,68 @@ int main()
         }
     }
 
+    size_t job_id = 0;
+    size_t batch_id = 0;
+
+    std::vector<Job> query_list;
+    query_list.reserve(10000);
+
     std::cout << "R" << std::endl;  // TIMER STARTS
-    size_t query_id = 1;
 
     while (std::getline(vstup, line))
     {
         if (line[0] == 'F')
         {
-#ifdef USE_THREADS
-            std::unique_lock<std::mutex> lock(jobQueue.jobMutex);
-            jobQueue.batchEnded = true;
+            threadPool.jobs = &query_list;
+            threadPool.jobCV.notify_all();
 
-            while (jobQueue.get_size() > 0 || jobQueue.jobs_in_work > 0)
+            for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
             {
-                jobQueue.batchEndCV.wait(lock);
+                while (threadPool.threads[i].jobsCompleted != 1)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                }
+
+                std::stringstream ss;
+
+                for (size_t j = 0; j < threadPool.threads[i].results.size(); j++)
+                {
+                    ss << threadPool.threads[i].results.at(j) << std::endl;
+                }
+
+                std::cout << ss.rdbuf();
             }
 
-            std::map<size_t, int64_t>& results = jobQueue.get_results();
-            std::stringstream ss;
-            for (auto& item : results)
+            threadPool.jobs = nullptr;
+
+            for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
             {
-                ss << item.second << std::endl;
+                threadPool.threads[i].reset();
             }
 
-            std::cout << ss.str();
+            query_list.clear();
+            batch_id++;
 
-            jobQueue.clear_results();
-#endif
+            if (batch_id % 10 == 0)
+            {
+                for (auto& vertex : graph.nodes)
+                {
+                    std::vector<Edge>& edges = vertex.second.edges_out;
+                    for (size_t i = 0; i < edges.size(); i++)
+                    {
+                        if (edges.at(i).to != (size_t) -1)
+                        {
+                            edges.erase(edges.begin() + i);
+                            i--;
+                        }
+                    }
+                }
+            }
+
             continue;
         }
+
+        job_id++;
 
         std::stringstream ss(line);
         char action;
@@ -89,37 +120,14 @@ int main()
         switch (action)
         {
             case 'A':
-#ifdef USE_THREADS
-                jobQueue.add_job(JobType::AddEdge, from, to);
-#else
-                graph.add_edge(from, to);
-#endif
+                graph.add_edge_stamp(from, to, job_id);
                 break;
             case 'D':
-#ifdef USE_THREADS
-                jobQueue.add_job(JobType::RemoveEdge, from, to);
-#else
-                graph.remove_edge(from, to);
-#endif
+                graph.remove_edge_stamp(from, to, job_id);
                 break;
             case 'Q':
             {
-#ifdef USE_THREADS
-                jobQueue.add_job(JobType::Query, from, to);
-#else
-                int64_t result = GraphEvaluator::query(from, to, query_id++, 0);
-
-#ifdef COLLECT_STATS
-                QUERY_COUNT++;
-                if (QUERY_RESULTS.count(result))
-                {
-                    QUERY_RESULTS[result]++;
-                }
-                else QUERY_RESULTS.insert({result, 1});
-#else
-                std::cout << result << std::endl;
-#endif
-#endif
+                query_list.emplace_back(JobType::Query, from, to, job_id);
             }
                 break;
             default:

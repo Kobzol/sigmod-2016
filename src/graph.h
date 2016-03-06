@@ -15,7 +15,9 @@ public:
     ~Graph();
 
     void add_edge(sigint from, sigint to);
-    void remove_edge(sigint from, sigint to);
+
+    void add_edge_stamp(sigint from, sigint to, size_t job_id);
+    void remove_edge_stamp(sigint from, sigint to, size_t job_id);
 
     inline bool has_vertex(sigint id) const
     {

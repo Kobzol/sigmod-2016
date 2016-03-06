@@ -50,28 +50,20 @@ public:
             DistanceInfo current = q.front();
             q.pop();
 
-            for (Vertex* neighbor : graph.nodes[current.vertexId].edges_out)
+            for (Edge& edge : graph.nodes.at(current.vertexId).edges_out)
             {
-                if (neighbor->id == to)
+                if (edge.from < query_id && edge.to > query_id)
                 {
-                    return current.distance + 1;
-                }
+                    if (edge.neighbor->id == to)
+                    {
+                        return current.distance + 1;
+                    }
 
-#ifdef USE_THREADS
-                if (neighbor->visited[thread_id] < query_id && neighbor->edges_out.size() > 0)
-#else
-                if (neighbor->visited < query_id && neighbor->edges_out.size() > 0)
-#endif
-                {
-                    q.push(DistanceInfo(neighbor->id, current.distance + 1));
-#ifdef COLLECT_STATS
-                    BFS_QUEUE_MAX_SIZE = std::max(BFS_QUEUE_MAX_SIZE, q.size());
-#endif
-#ifdef USE_THREADS
-                    neighbor->visited[thread_id] = query_id;
-#else
-                    neighbor->visited = query_id;
-#endif
+                    if (edge.neighbor->visited[thread_id] < query_id && edge.neighbor->edges_out.size() > 0)
+                    {
+                        q.push(DistanceInfo(edge.neighbor->id, current.distance + 1));
+                        edge.neighbor->visited[thread_id] = query_id;
+                    }
                 }
             }
         }

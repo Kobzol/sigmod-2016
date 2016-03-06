@@ -7,6 +7,22 @@
 #include "settings.h"
 
 class Graph;
+struct Vertex;
+
+struct Edge
+{
+public:
+    Edge(Vertex* neighbor=nullptr, size_t from=0, size_t to=(size_t) -1)
+            : neighbor(neighbor), from(from), to(to)
+    {
+
+    }
+
+    Vertex* neighbor;
+    size_t from;
+    size_t to;
+};
+
 
 struct Vertex
 {
@@ -29,7 +45,7 @@ public:
     }
 
     sigint id;
-    std::vector<Vertex*> edges_out;
+    std::vector<Edge> edges_out;
 #ifdef USE_THREADS
     size_t visited[THREAD_POOL_THREAD_COUNT + 1];
 #else

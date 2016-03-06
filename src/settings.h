@@ -29,7 +29,7 @@ typedef uint32_t sigint;
 #define USE_THREADS
 
 // počet vláken v thread poolu pro grafové operace
-#define THREAD_POOL_THREAD_COUNT (23)
+#define THREAD_POOL_THREAD_COUNT (4)
 
 // použít synchronizaci místo čekání pevnou dobu
 #define THREAD_USE_JOB_SYNC

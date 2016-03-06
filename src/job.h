@@ -10,26 +10,6 @@
 #include "settings.h"
 #include "vector.h"
 
-class Barrier
-{
-public:
-    Barrier(bool modification = false, size_t waiting = 0)
-            : modification(modification), waiting(waiting)
-    {
-
-    }
-
-    inline bool is_ready() { return this->waiting == 0; }
-    inline void push() { this->waiting++; }
-    inline void pop() { this->waiting--; }
-
-    bool modification;
-    size_t waiting;
-};
-
-Barrier BarrierMemory[BARRIER_BUFFER_COUNT];
-size_t BarrierIndex = 0;
-
 enum JobType
 {
     Query,
@@ -41,16 +21,12 @@ enum JobType
 class Job
 {
 public:
-    static size_t JOB_ID;
-
     Job() : type(JobType::Invalid)
     {
 
     }
-    Job(JobType type, sigint from = 0, sigint to = 0, Barrier* barrier = nullptr, Barrier* modifyBarrier = nullptr,
-        bool allocated = false) :
-            id(Job::JOB_ID++), type(type), from(from), to(to), barrier(barrier), modifyBarrier(modifyBarrier),
-            allocated(allocated)
+    Job(JobType type, sigint from = 0, sigint to = 0, size_t id=0) :
+            id(id), type(type), from(from), to(to)
     {
 
     }
@@ -59,13 +35,8 @@ public:
     JobType type;
     sigint from;
     sigint to;
-    Barrier* barrier;
-    Barrier* modifyBarrier;
-    bool allocated;
 };
-
-size_t Job::JOB_ID = 0;
-
+/*
 class JobQueue
 {
 public:
@@ -224,3 +195,4 @@ private:
     std::map<size_t, int64_t> results;
     std::condition_variable bufferFull;
 };
+ */

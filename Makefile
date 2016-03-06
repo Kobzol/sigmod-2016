@@ -8,7 +8,7 @@ release: src/*.cpp
 	$(CXX_COMPILER) $(CPP_FLAGS) $^ -o $(TARGET)
 
 debug: src/*.cpp
-	$(CXX_COMPILER) $(CPP_FLAGS) -g -O0 $^ -o $(TARGET)
+	$(CXX_COMPILER) $(CPP_FLAGS) -g -Og $^ -o $(TARGET)
 
 clean:
 	rm -f $(TARGET)
