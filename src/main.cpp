@@ -61,8 +61,11 @@ int main()
     {
         if (line[0] == 'F')
         {
+            std::unique_lock<std::mutex> lock(threadPool.jobLock);
             threadPool.jobs = &query_list;
             threadPool.jobCV.notify_all();
+
+            lock.unlock();
 
             std::stringstream ss;
 

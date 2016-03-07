@@ -3,9 +3,7 @@
 /*
  * TODO:
  * Bulk loading
- * Řazení výsledků - hash mapa
- * Conditional variables místo sleepu - hotovo (THREAD_USE_JOB_SYNC)
- * Časová razítka u hran
+ * Časová razítka u hran - základ hotov
  * Komponenty (Union Find) - základní implementace hotova, přidat restrukturalizaci po mazání
  * */
 
@@ -29,7 +27,7 @@ typedef uint32_t sigint;
 #define USE_THREADS
 
 // počet vláken v thread poolu pro grafové operace
-#define THREAD_POOL_THREAD_COUNT (4)
+#define THREAD_POOL_THREAD_COUNT (24)
 
 // co kolik dávek se mají normalizovat časová razítka
 #define TIMESTAMP_NORMALIZE_RATE (10)
