@@ -31,14 +31,8 @@ typedef uint32_t sigint;
 // počet vláken v thread poolu pro grafové operace
 #define THREAD_POOL_THREAD_COUNT (4)
 
-// použít synchronizaci místo čekání pevnou dobu
-#define THREAD_USE_JOB_SYNC
-
-// velikost fronty na joby
-#define JOB_QUEUE_SIZE (200000)
-
-// velikost bufferu na bariéry pro joby
-#define BARRIER_BUFFER_COUNT JOB_QUEUE_SIZE
+// co kolik dávek se mají normalizovat časová razítka
+#define TIMESTAMP_NORMALIZE_RATE (10)
 
 // zaznamena a vypise statistiky prubehu programu (zatím pouze pro singlethreaded verzi)
 //#define COLLECT_STATS

@@ -47,9 +47,9 @@ public:
     sigint id;
     std::vector<Edge> edges_out;
 #ifdef USE_THREADS
-    size_t visited[THREAD_POOL_THREAD_COUNT + 1];
+    sigint visited[THREAD_POOL_THREAD_COUNT];
 #else
-    size_t visited;
+    sigint visited;
 #endif
 
 #ifdef USE_UNION_FIND

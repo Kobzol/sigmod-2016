@@ -6,6 +6,7 @@
 
 class ThreadPool;
 extern ThreadPool threadPool;
+extern size_t batch_id;
 
 class Thread
 {

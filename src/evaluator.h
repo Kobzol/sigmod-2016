@@ -45,6 +45,8 @@ public:
         std::queue<DistanceInfo> q;
         q.push(DistanceInfo(from, 0));
 
+        thread_id--;
+
         while (!q.empty())
         {
             DistanceInfo current = q.front();
@@ -61,7 +63,7 @@ public:
 
                     if (edge.neighbor->visited[thread_id] < query_id && edge.neighbor->edges_out.size() > 0)
                     {
-                        q.push(DistanceInfo(edge.neighbor->id, current.distance + 1));
+                        q.emplace(edge.neighbor->id, current.distance + 1);
                         edge.neighbor->visited[thread_id] = query_id;
                     }
                 }

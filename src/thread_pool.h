@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <iostream>
+#include <condition_variable>
 
 #include "graph.h"
 #include "job.h"

@@ -25,6 +25,26 @@ void Thread::thread_fn()
             this->results.push_back(GraphEvaluator::query(job.from, job.to, job.id, this->id));
         }
 
+        if (batch_id % (TIMESTAMP_NORMALIZE_RATE) == 0)
+        {
+            part = graph.nodes.size();
+            start = (this->id - 1) * part;
+            end = std::min(graph.nodes.size(), part + start);
+
+            for (size_t v = start; v < end; v++)
+            {
+                std::vector<Edge>& edges = graph.nodes.at(v).edges_out;
+                for (size_t i = 0; i < edges.size(); i++)
+                {
+                    if (edges.at(i).to != (size_t) -1)
+                    {
+                        edges.erase(edges.begin() + i);
+                        i--;
+                    }
+                }
+            }
+        }
+
         this->jobsCompleted++;
     }
 }

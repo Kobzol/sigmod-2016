@@ -10,6 +10,7 @@
 #include "thread_pool.h"
 
 Graph graph;
+size_t batch_id = 0;
 
 #ifdef COLLECT_STATS
 size_t UNION_HITS = 0;
@@ -50,7 +51,6 @@ int main()
     }
 
     size_t job_id = 0;
-    size_t batch_id = 0;
 
     std::vector<Job> query_list;
     query_list.reserve(10000);
@@ -64,6 +64,8 @@ int main()
             threadPool.jobs = &query_list;
             threadPool.jobCV.notify_all();
 
+            std::stringstream ss;
+
             for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
             {
                 while (threadPool.threads[i].jobsCompleted != 1)
@@ -71,15 +73,13 @@ int main()
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 }
 
-                std::stringstream ss;
-
                 for (size_t j = 0; j < threadPool.threads[i].results.size(); j++)
                 {
                     ss << threadPool.threads[i].results.at(j) << std::endl;
                 }
-
-                std::cout << ss.rdbuf();
             }
+
+            std::cout << ss.rdbuf();
 
             threadPool.jobs = nullptr;
 
@@ -90,22 +90,6 @@ int main()
 
             query_list.clear();
             batch_id++;
-
-            if (batch_id % 10 == 0)
-            {
-                for (auto& vertex : graph.nodes)
-                {
-                    std::vector<Edge>& edges = vertex.second.edges_out;
-                    for (size_t i = 0; i < edges.size(); i++)
-                    {
-                        if (edges.at(i).to != (size_t) -1)
-                        {
-                            edges.erase(edges.begin() + i);
-                            i--;
-                        }
-                    }
-                }
-            }
 
             continue;
         }
