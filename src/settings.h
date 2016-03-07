@@ -16,7 +16,7 @@
 typedef uint32_t sigint;
 
 
-// použít Union-Find pro slabě kontrolu slabě propojených komponent
+// použít Union-Find pro kontrolu slabě propojených komponent
 #define USE_UNION_FIND
 
 // bude při přidávání a mazání hran kontrolovat, jestli daná hrana už náhodou neexistuje
@@ -27,7 +27,7 @@ typedef uint32_t sigint;
 #define USE_THREADS
 
 // počet vláken v thread poolu pro grafové operace
-#define THREAD_POOL_THREAD_COUNT (24)
+#define THREAD_POOL_THREAD_COUNT (84)
 
 // co kolik dávek se mají normalizovat časová razítka
 #define TIMESTAMP_NORMALIZE_RATE (10)

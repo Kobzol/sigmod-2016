@@ -17,10 +17,11 @@ void Thread::thread_fn()
 
         if ((this->id - 1) >= threadPool.jobs->size())
         {
+            this->jobsCompleted++;
             continue;
         }
 
-        size_t part = (size_t) std::ceil(threadPool.jobs->size() / (double)(THREAD_POOL_THREAD_COUNT));
+        size_t part = (size_t) std::max(1.0, std::ceil(threadPool.jobs->size() / (double)(THREAD_POOL_THREAD_COUNT)));
         size_t start = (this->id - 1) * part;
         size_t end = std::min(threadPool.jobs->size(), part + start);
 
