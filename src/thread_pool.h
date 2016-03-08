@@ -24,6 +24,15 @@ public:
         }
     }
 
+    void reset_jobs()
+    {
+        this->jobs = nullptr;
+        for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
+        {
+            this->threads[i].batch--;
+        }
+    }
+
     void terminate()
     {
         for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)

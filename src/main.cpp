@@ -53,7 +53,7 @@ int main()
     size_t job_id = 0;
 
     std::vector<Job> query_list;
-    query_list.reserve(10000);
+//    query_list.reserve(10000);
 
     std::cout << "R" << std::endl;  // TIMER STARTS
 
@@ -69,27 +69,19 @@ int main()
 
             std::stringstream ss;
 
-            for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
+            for (size_t i = 0; i < query_list.size(); i++)
             {
-                while (threadPool.threads[i].jobsCompleted != 1)
+                while (query_list[i].result == JOB_NOT_DONE)
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 }
 
-                for (size_t j = 0; j < threadPool.threads[i].results.size(); j++)
-                {
-                    ss << threadPool.threads[i].results.at(j) << std::endl;
-                }
+                ss << query_list[i].result << std::endl;
             }
 
             std::cout << ss.rdbuf();
 
-            threadPool.jobs = nullptr;
-
-            for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
-            {
-                threadPool.threads[i].reset();
-            }
+            threadPool.reset_jobs();
 
             query_list.clear();
             batch_id++;

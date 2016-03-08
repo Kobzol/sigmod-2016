@@ -8,34 +8,49 @@ void Thread::thread_fn()
     {
         std::unique_lock<std::mutex> lock(threadPool.jobLock);
 
-        while (threadPool.jobs == nullptr || threadPool.jobs->size() == 0 || this->jobsCompleted > 0)
+        while (threadPool.jobs == nullptr || threadPool.jobs->size() == 0 || this->batch > 0)
         {
             threadPool.jobCV.wait(lock);
         }
 
         lock.unlock();
 
-        if ((this->id - 1) >= threadPool.jobs->size())
+        int size = (int) threadPool.jobs->size();
+
+#ifdef LOAD_BALANCER_TWO_SIDE
+        int start = 0;
+        int end = size;
+        int increment = 1;
+
+        if (this->id % 2 == 0)
         {
-            this->jobsCompleted++;
-            continue;
+            start = size - 1;
+            end = -1;
+            increment = -1;
         }
 
-        size_t part = (size_t) std::max(1.0, std::ceil(threadPool.jobs->size() / (double)(THREAD_POOL_THREAD_COUNT)));
-        size_t start = (this->id - 1) * part;
-        size_t end = std::min(threadPool.jobs->size(), part + start);
-
-        for (size_t i = start; i < end; i++)
+        for (int i = start; i != end; i += increment)
+#else
+        for (size_t i = 0; i < size; i++)
+#endif
         {
-            Job& job = threadPool.jobs->at(i);
-            this->results.push_back(GraphEvaluator::query(job.from, job.to, job.id, this->id));
+            Job& job = threadPool.jobs->at((size_t) i);
+            if (!job.available.test_and_set())
+            {
+                job.result = GraphEvaluator::query(job.from, job.to, job.id, this->id);
+            }
+        }
+
+        if (this->batch == 0)
+        {
+            this->batch++;
         }
 
         if (batch_id % (TIMESTAMP_NORMALIZE_RATE) == 0)
         {
-            part = graph.nodes.size();
-            start = (this->id - 1) * part;
-            end = std::min(graph.nodes.size(), part + start);
+            size_t part = graph.nodes.size();
+            size_t start = (this->id - 1) * part;
+            size_t end = std::min(graph.nodes.size(), part + start);
 
             for (size_t v = start; v < end; v++)
             {
@@ -50,7 +65,5 @@ void Thread::thread_fn()
                 }
             }
         }
-
-        this->jobsCompleted++;
     }
 }

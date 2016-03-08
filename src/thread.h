@@ -3,6 +3,7 @@
 #include <thread>
 #include <mutex>
 #include <vector>
+#include <atomic>
 
 class ThreadPool;
 extern ThreadPool threadPool;
@@ -13,15 +14,11 @@ class Thread
 public:
     Thread() : id(0), terminated(false), handle(std::thread(&Thread::thread_fn, this))
     {
+        this->batch.store(0);
         this->handle.detach();
     }
 
     void thread_fn();
-    void reset()
-    {
-        this->jobsCompleted = 0;
-        this->results.clear();
-    }
 
     void terminate()
     {
@@ -33,8 +30,7 @@ public:
     }
 
     size_t id;
-    size_t jobsCompleted = 0;
-    std::vector<int64_t> results;
+    std::atomic<int> batch;
 
 private:
     bool terminated;

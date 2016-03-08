@@ -61,7 +61,7 @@ public:
                         return current.distance + 1;
                     }
 
-                    if (edge.neighbor->visited[thread_id] < query_id && edge.neighbor->edges_out.size() > 0)
+                    if (edge.neighbor->visited[thread_id] != query_id && edge.neighbor->edges_out.size() > 0)
                     {
                         q.emplace(edge.neighbor->id, current.distance + 1);
                         edge.neighbor->visited[thread_id] = query_id;

@@ -27,10 +27,13 @@ typedef uint32_t sigint;
 #define USE_THREADS
 
 // počet vláken v thread poolu pro grafové operace
-#define THREAD_POOL_THREAD_COUNT (84)
+#define THREAD_POOL_THREAD_COUNT (4)
 
 // co kolik dávek se mají normalizovat časová razítka
 #define TIMESTAMP_NORMALIZE_RATE (10)
+
+// polovina vláken bude provádět dotazy od začátku seznamu, druhá polovina od konce seznamu
+//#define LOAD_BALANCER_TWO_SIDE
 
 // zaznamena a vypise statistiky prubehu programu (zatím pouze pro singlethreaded verzi)
 //#define COLLECT_STATS
