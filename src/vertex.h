@@ -3,60 +3,53 @@
 #include <vector>
 #include <cstddef>
 #include <cstring>
+#include <unordered_map>
 
 #include "settings.h"
 
 class Graph;
 struct Vertex;
 
-struct Edge
+struct Landmark
 {
 public:
-    Edge(Vertex* neighbor=nullptr, size_t from=0, size_t to=(size_t) -1)
-            : neighbor(neighbor), from(from), to(to)
+    Landmark(int distance = 0) : distance(distance)
     {
 
     }
 
-    Vertex* neighbor;
-    size_t from;
-    size_t to;
+    int distance;
 };
-
 
 struct Vertex
 {
 public:
-    Vertex()
+    Vertex(sigint id = 0) : id(id), visited(0)
     {
 
     }
-    Vertex(sigint id) : id(id)
-#ifndef USE_THREADS
-                        ,visited(0)
-#endif
-#ifdef USE_UNION_FIND
-            ,parent(id), rank(0)
-#endif
+
+    bool operator<(const Vertex& other)
     {
-#ifdef USE_THREADS
-        std::memset(this->visited, 0, sizeof(this->visited));
-#endif
+        return this->edges_out.size() > other.edges_out.size();
     }
 
     sigint id;
-    std::vector<Edge> edges_out;
-#ifdef USE_THREADS
-    sigint visited[THREAD_POOL_THREAD_COUNT];
-#else
-    sigint visited;
-#endif
+    size_t visited;
+    std::vector<Vertex*> edges_out;
+    std::vector<Vertex*> edges_in;
+    std::unordered_map<sigint, Landmark> landmarks_out;
+    std::unordered_map<sigint, Landmark> landmarks_in;
+};
 
-#ifdef USE_UNION_FIND
-    sigint get_parent(Graph& graph);
-    void join(Graph& graph, Vertex& vertex);
+struct DistanceInfo
+{
+public:
+    DistanceInfo(Vertex* vertex, size_t distance) : vertex(vertex), distance(distance)
+    {
 
-    sigint parent;
-    size_t rank;
-#endif
+    }
+
+    Vertex* vertex;
+    size_t distance;
 };

@@ -1,8 +1,11 @@
+#include <queue>
+#include <iostream>
+#include <algorithm>
 #include "graph.h"
 
 Graph::Graph()
 {
-    this->nodes.reserve(10000);
+    this->visit_id = 0;
 }
 
 Graph::~Graph()
@@ -17,58 +20,152 @@ void Graph::add_edge(sigint from, sigint to)
     if (!this->has_vertex(to)) this->add_vertex(to);
 
     Vertex& dest = this->nodes.at(to);
-
-#ifdef CHECK_UNIQUE_EDGES
-    for (Vertex* edge : this->nodes.at(from).edges_out)
-    {
-        if (edge == &dest)
-        {
-            this->non_unique++;
-            return;
-        }
-    }
-#endif
-
     Vertex& src = this->nodes.at(from);
 
-    src.edges_out.emplace_back(&dest, 0, (size_t) -1);
-#ifdef USE_UNION_FIND
-    src.join(*this, dest);
-#endif
+    src.edges_out.push_back(&dest);
+    dest.edges_in.push_back(&src);
+}
+void Graph::remove_edge(sigint from, sigint to)
+{
+    if (from == to) return;
+    if (!this->has_vertex(from)) return;
+
+    Vertex& dest = this->nodes.at(to);
+    Vertex& src = this->nodes.at(from);
+
+    for (size_t i = 0; i < src.edges_out.size(); i++)
+    {
+        if (src.edges_out[i] == &dest)
+        {
+            src.edges_out.erase(src.edges_out.begin() + i);
+            i--;
+        }
+    }
+
+    for (size_t i = 0; i < dest.edges_in.size(); i++)
+    {
+        if (dest.edges_in[i] == &src)
+        {
+            dest.edges_in.erase(dest.edges_in.begin() + i);
+            i--;
+        }
+    }
 }
 
 void Graph::add_vertex(sigint num)
 {
     this->nodes.emplace(num, num);
+    this->vertices.push_back(&this->nodes.at(num));
 }
 
-void Graph::add_edge_stamp(sigint from, sigint to, size_t job_id)
+int64_t Graph::get_distance(sigint from, sigint to)
 {
-    if (from == to) return;
-    if (!this->has_vertex(from)) this->add_vertex(from);
-    if (!this->has_vertex(to)) this->add_vertex(to);
+    if (from == to) return 0;
+    if (!this->has_vertex(from) || !this->has_vertex(to)) return -1;
 
-    Vertex& dest = this->nodes.at(to);
-    Vertex& src = this->nodes.at(from);
-
-    src.edges_out.emplace_back(&dest, job_id, (size_t) -1);
-#ifdef USE_UNION_FIND
-    src.join(*this, dest);
-#endif
+    return this->query(this->nodes.at(from), this->nodes.at(to));
 }
 
-void Graph::remove_edge_stamp(sigint from, sigint to, size_t job_id)
+void Graph::rebuild()
 {
-    if (!this->has_vertex(from)) return;
-
-    std::vector<Edge>& edges = this->nodes.at(from).edges_out;
-    Vertex* address = &this->nodes.at(to);
-
-    for (Edge& edge : edges)
+    std::sort(this->vertices.begin(), this->vertices.end(), [](Vertex* lhs, Vertex* rhs)
     {
-        if (edge.neighbor == address)
+       return lhs->edges_out.size() > rhs->edges_out.size();
+    });
+
+    for (auto& kv : this->nodes)    // optimize: vector, sort by degree, two levels of landmarks
+    {
+        Vertex& vertex = kv.second;
+        vertex.landmarks_in.clear();
+        vertex.landmarks_out.clear();
+    }
+
+    for (size_t i = 0; i < this->vertices.size(); i++)
+    {
+        this->label_bfs(*this->vertices[i]);
+        this->label_bfs_in(*this->vertices[i]);
+    }
+}
+
+void Graph::label_bfs(Vertex& vertex)
+{
+    this->visit_id++;
+
+    std::queue<DistanceInfo> q;
+    q.push(DistanceInfo(&vertex, 0));
+
+    vertex.visited = this->visit_id;
+
+    while (!q.empty())
+    {
+        DistanceInfo di = q.front();
+        q.pop();
+
+        size_t distance = (size_t) this->query(vertex, *di.vertex);
+
+        if (distance <= di.distance)
         {
-            edge.to = job_id;
+            continue;
+        }
+
+        di.vertex->landmarks_in.emplace(vertex.id, di.distance);
+
+        for (Vertex* edge : di.vertex->edges_out)
+        {
+            if (edge->visited < this->visit_id)
+            {
+                edge->visited = this->visit_id;
+                q.emplace(edge, di.distance + 1);
+            }
         }
     }
+}
+void Graph::label_bfs_in(Vertex& vertex)
+{
+    this->visit_id++;
+
+    std::queue<DistanceInfo> q;
+    q.push(DistanceInfo(&vertex, 0));
+
+    vertex.visited = this->visit_id;
+
+    while (!q.empty())
+    {
+        DistanceInfo di = q.front();
+        q.pop();
+
+        size_t distance = (size_t) this->query(*di.vertex, vertex);
+
+        if (distance <= di.distance)
+        {
+            continue;
+        }
+
+        di.vertex->landmarks_out.emplace(vertex.id, di.distance);
+
+        for (Vertex* edge : di.vertex->edges_in)
+        {
+            if (edge->visited < this->visit_id)
+            {
+                edge->visited = this->visit_id;
+                q.emplace(edge, di.distance + 1);
+            }
+        }
+    }
+}
+
+int64_t Graph::query(Vertex& src, Vertex& dest)
+{
+    int minimumDistance = INT32_MAX;
+
+    for (auto& kv : src.landmarks_out)
+    {
+        if (dest.landmarks_in.count(kv.first))
+        {
+            minimumDistance = std::min(minimumDistance, kv.second.distance + dest.landmarks_in[kv.first].distance);
+        }
+    }
+
+    if (minimumDistance == INT32_MAX) return -1;
+    else return minimumDistance;
 }

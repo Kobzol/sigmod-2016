@@ -4,7 +4,7 @@
 
 void Thread::thread_fn()
 {
-    while (!this->terminated)
+    /*while (!this->terminated)
     {
         std::unique_lock<std::mutex> lock(threadPool.jobLock);
 
@@ -31,7 +31,7 @@ void Thread::thread_fn()
 
         for (int i = start; i != end; i += increment)
 #else
-        for (size_t i = 0; i < size; i++)
+        for (int i = 0; i < size; i++)
 #endif
         {
             Job& job = threadPool.jobs->at((size_t) i);
@@ -65,5 +65,5 @@ void Thread::thread_fn()
                 }
             }
         }
-    }
+    }*/
 }

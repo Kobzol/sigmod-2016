@@ -8,7 +8,6 @@
 #include "job.h"
 #include "vector.h"
 #include "settings.h"
-#include "evaluator.h"
 #include "thread.h"
 
 extern Graph graph;
