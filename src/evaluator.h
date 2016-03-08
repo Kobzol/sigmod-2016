@@ -15,12 +15,12 @@ extern size_t BFS_QUEUE_MAX_SIZE;
 struct DistanceInfo
 {
 public:
-    DistanceInfo(sigint vertexId, sigint distance) : vertexId(vertexId), distance(distance)
+    DistanceInfo(Vertex* vertex, sigint distance) : vertex(vertex), distance(distance)
     {
 
     }
 
-    sigint vertexId;
+    Vertex* vertex;
     sigint distance;
 };
 
@@ -43,7 +43,7 @@ public:
 #endif
 
         std::queue<DistanceInfo> q;
-        q.push(DistanceInfo(from, 0));
+        q.push(DistanceInfo(&graph.nodes.at(from), 0));
 
         thread_id--;
 
@@ -52,7 +52,7 @@ public:
             DistanceInfo current = q.front();
             q.pop();
 
-            for (Edge& edge : graph.nodes.at(current.vertexId).edges_out)
+            for (Edge& edge : current.vertex->edges_out)
             {
                 if (edge.from < query_id && edge.to > query_id)
                 {
@@ -63,7 +63,7 @@ public:
 
                     if (edge.neighbor->visited[thread_id] != query_id && edge.neighbor->edges_out.size() > 0)
                     {
-                        q.emplace(edge.neighbor->id, current.distance + 1);
+                        q.emplace(edge.neighbor, current.distance + 1);
                         edge.neighbor->visited[thread_id] = query_id;
                     }
                 }

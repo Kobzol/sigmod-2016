@@ -53,7 +53,7 @@ int main()
     size_t job_id = 0;
 
     std::vector<Job> query_list;
-//    query_list.reserve(10000);
+    query_list.reserve(10000);
 
     std::cout << "R" << std::endl;  // TIMER STARTS
 

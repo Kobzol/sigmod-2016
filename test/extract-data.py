@@ -7,10 +7,11 @@ batch_counter = 0
 line_counter = 0
 TEST_FILE = "test-data.txt"
 
-if len(sys.argv) > 1:
-    max_lines = int(sys.argv[1])
 if len(sys.argv) > 2:
     batch_size = int(sys.argv[2])
+
+if len(sys.argv) > 1:
+    max_lines = int(sys.argv[1]) * batch_size
 
 shutil.rmtree(TEST_FILE, True)
 shutil.copy("./init-file.txt", TEST_FILE)
