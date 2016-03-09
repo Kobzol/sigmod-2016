@@ -26,7 +26,7 @@ typedef uint32_t sigint;
 //#define CHECK_UNIQUE_EDGES
 
 // povolí použití thread poolu
-#define USE_THREADS
+//#define USE_THREADS
 
 // počet vláken v thread poolu pro grafové operace
 #define THREAD_POOL_THREAD_COUNT (23)
@@ -39,6 +39,8 @@ typedef uint32_t sigint;
 
 // velikost bufferu na bariéry pro joby
 #define BARRIER_BUFFER_COUNT JOB_QUEUE_SIZE
+
+#define PARALLEL_BFS 1
 
 // zaznamena a vypise statistiky prubehu programu (zatím pouze pro singlethreaded verzi)
 //#define COLLECT_STATS
