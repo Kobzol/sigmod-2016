@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <map>
 #include <stack>
+#include <omp.h>
 
 #include "graph.h"
 #include "thread_pool.h"
@@ -26,6 +27,8 @@ JobQueue jobQueue(JOB_QUEUE_SIZE);
 
 int main()
 {
+    omp_set_num_threads(THREAD_POOL_THREAD_COUNT);
+
     std::ios::sync_with_stdio(true);
 
 #ifdef REDIRECT_TEST_FILE_TO_INPUT

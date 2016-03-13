@@ -2,6 +2,8 @@
 
 #include "settings.h"
 #include "graph.h"
+#include <omp.h>
+#include <cmath>
 
 extern Graph graph;
 
@@ -13,12 +15,12 @@ extern size_t BFS_QUEUE_MAX_SIZE;
 struct DistanceInfo
 {
 public:
-    DistanceInfo(sigint vertexId, sigint distance) : vertexId(vertexId), distance(distance)
+    DistanceInfo(Vertex* vertex, sigint distance) : vertex(vertex), distance(distance)
     {
 
     }
 
-    sigint vertexId;
+    Vertex* vertex;
     sigint distance;
 };
 
@@ -27,72 +29,70 @@ class GraphEvaluator
 public:
     static int64_t query(sigint from, sigint to, size_t query_id, size_t thread_id)
     {
-        if (!graph.has_vertex(from) || !graph.has_vertex(to)) return -1;
         if (from == to) return 0;
+        if (!graph.has_vertex(from) || !graph.has_vertex(to)) return -1;
 
 #ifdef USE_UNION_FIND
         if (graph.nodes[from].get_parent(graph) != graph.nodes[to].get_parent(graph))
         {
-#ifdef COLLECT_STATS
-            UNION_HITS++;
-#endif
             return -1;
         }
 #endif
-        std::vector<DistanceInfo> bag, neighborBag;
+        std::vector<DistanceInfo> bag;
         bag.reserve(200);
-        neighborBag.reserve(20);
-        bag.push_back(DistanceInfo(from, 0));
+        bag.push_back(DistanceInfo(&graph.nodes.at(from), 0));
         bool found = false;
         int64_t resultDistance = 0;
 
+        size_t threadCount = THREAD_POOL_THREAD_COUNT;
+        std::vector<std::vector<DistanceInfo>> bags(threadCount, std::vector<DistanceInfo>());
+
         while (!bag.empty())
         {
-            unsigned long int bagSize = bag.size();
-#pragma omp parallel for private(neighborBag)
-            for(unsigned long int i = 0; i < bagSize; i++)
+            const size_t bagSize = bag.size();
+            size_t part = std::ceil(bagSize / (double) threadCount);
+#pragma omp parallel
             {
-                DistanceInfo current = bag[i];
-                int64_t currentDistance = current.distance + 1;
+                int threadId = omp_get_thread_num();
+                int start = threadId * part;
+                int end = std::min(bagSize, start + part);
 
-                for (Vertex *neighbor : graph.nodes[current.vertexId].edges_out)
+                for(int i = start; i < end; i++)
                 {
+                    DistanceInfo current = bag[i];
+                    int64_t currentDistance = current.distance + 1;
 
-                    if (neighbor->id == to)
+                    for (Vertex *neighbor : current.vertex->edges_out)
                     {
-                        resultDistance = currentDistance;
-                        found = true;
+                        if (neighbor->id == to)
+                        {
+                            resultDistance = currentDistance;
+                            found = true;
+                        }
+                        if (neighbor->visited < query_id && neighbor->edges_out.size() > 0)
+                        {
+                            bags[threadId].push_back(DistanceInfo(neighbor, currentDistance));
+                            neighbor->visited = query_id;
+                        }
                     }
-#ifdef USE_THREADS
-                    if (neighbor->visited[thread_id] < query_id && neighbor->edges_out.size() > 0)
-#else
-                    if (neighbor->visited < query_id && neighbor->edges_out.size() > 0)
-#endif
-                    {
-                        neighborBag.push_back(DistanceInfo(neighbor->id, currentDistance));
-#ifdef COLLECT_STATS
-                        BFS_QUEUE_MAX_SIZE = std::max(BFS_QUEUE_MAX_SIZE, bagSize);
-#endif
-#ifdef USE_THREADS
-                        neighbor->visited[thread_id] = query_id;
-#else
-                        neighbor->visited = query_id;
-#endif
-                    }
+                }
+
+#pragma omp barrier
+#pragma omp single
+                {
+                    bag.clear();
                 }
 
 #pragma omp critical
                 {
-                    bag.insert(bag.end(), neighborBag.begin(), neighborBag.end());
-                    neighborBag.clear();
+                    bag.insert(bag.end(), bags[threadId].begin(), bags[threadId].end());
                 }
-
+                bags[threadId].clear();
             }
 
             if (found) {
                 return resultDistance;
             }
-            bag.erase(bag.begin(), bag.begin() + bagSize);
         }
 
         return -1;
