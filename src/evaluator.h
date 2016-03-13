@@ -40,6 +40,8 @@ public:
         }
 #endif
         std::vector<DistanceInfo> bag, neighborBag;
+        bag.reserve(200);
+        neighborBag.reserve(20);
         bag.push_back(DistanceInfo(from, 0));
         bool found = false;
         int64_t resultDistance = 0;
