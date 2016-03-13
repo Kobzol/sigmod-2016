@@ -117,7 +117,7 @@ int main()
                 }
                 else QUERY_RESULTS.insert({result, 1});
 #else
-                std::cout << result << std::endl;
+                std::cout << result << '\n';
 #endif
 #endif
             }

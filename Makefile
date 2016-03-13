@@ -1,6 +1,6 @@
 TARGET=sigmod
-CPP_FLAGS=-std=c++11 -march=native -pthread -O2 -Wall -Wextra
-CXX_COMPILER=g++
+CPP_FLAGS=-std=c++11 -march=native -pthread -O2 -Wall -Wextra -pedantic -fopenmp
+CXX_COMPILER=clang-omp++
 
 all: release
 

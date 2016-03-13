@@ -1,7 +1,5 @@
 #pragma once
 
-#include <queue>
-
 #include "settings.h"
 #include "graph.h"
 
@@ -41,39 +39,60 @@ public:
             return -1;
         }
 #endif
+        std::vector<DistanceInfo> bag, neighborBag;
+        bag.reserve(200);
+        neighborBag.reserve(20);
+        bag.push_back(DistanceInfo(from, 0));
+        bool found = false;
+        int64_t resultDistance = 0;
 
-        std::queue<DistanceInfo> q;
-        q.push(DistanceInfo(from, 0));
-
-        while (!q.empty())
+        while (!bag.empty())
         {
-            DistanceInfo current = q.front();
-            q.pop();
-
-            for (Vertex* neighbor : graph.nodes[current.vertexId].edges_out)
+            unsigned long int bagSize = bag.size();
+#pragma omp parallel for private(neighborBag)
+            for(unsigned long int i = 0; i < bagSize; i++)
             {
-                if (neighbor->id == to)
+                DistanceInfo current = bag[i];
+                int64_t currentDistance = current.distance + 1;
+
+                for (Vertex *neighbor : graph.nodes[current.vertexId].edges_out)
                 {
-                    return current.distance + 1;
+
+                    if (neighbor->id == to)
+                    {
+                        resultDistance = currentDistance;
+                        found = true;
+                    }
+#ifdef USE_THREADS
+                    if (neighbor->visited[thread_id] < query_id && neighbor->edges_out.size() > 0)
+#else
+                    if (neighbor->visited < query_id && neighbor->edges_out.size() > 0)
+#endif
+                    {
+                        neighborBag.push_back(DistanceInfo(neighbor->id, currentDistance));
+#ifdef COLLECT_STATS
+                        BFS_QUEUE_MAX_SIZE = std::max(BFS_QUEUE_MAX_SIZE, bagSize);
+#endif
+#ifdef USE_THREADS
+                        neighbor->visited[thread_id] = query_id;
+#else
+                        neighbor->visited = query_id;
+#endif
+                    }
                 }
 
-#ifdef USE_THREADS
-                if (neighbor->visited[thread_id] < query_id && neighbor->edges_out.size() > 0)
-#else
-                if (neighbor->visited < query_id && neighbor->edges_out.size() > 0)
-#endif
+#pragma omp critical
                 {
-                    q.push(DistanceInfo(neighbor->id, current.distance + 1));
-#ifdef COLLECT_STATS
-                    BFS_QUEUE_MAX_SIZE = std::max(BFS_QUEUE_MAX_SIZE, q.size());
-#endif
-#ifdef USE_THREADS
-                    neighbor->visited[thread_id] = query_id;
-#else
-                    neighbor->visited = query_id;
-#endif
+                    bag.insert(bag.end(), neighborBag.begin(), neighborBag.end());
+                    neighborBag.clear();
                 }
+
             }
+
+            if (found) {
+                return resultDistance;
+            }
+            bag.erase(bag.begin(), bag.begin() + bagSize);
         }
 
         return -1;
