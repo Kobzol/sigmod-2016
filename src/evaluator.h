@@ -1,7 +1,5 @@
 #pragma once
 
-#include <queue>
-
 #include "settings.h"
 #include "graph.h"
 
@@ -41,20 +39,19 @@ public:
             return -1;
         }
 #endif
+        std::vector<DistanceInfo> bag;
+        bag.push_back(DistanceInfo(from, 0));
+        bool found = false;
+        int64_t resultDistance = 0;
 
-        std::queue<DistanceInfo> q1, q2, *qFrontier, *qNeighbor, *swap;
-        qFrontier = &q1;
-        qNeighbor = &q2;
-
-        qFrontier->push(DistanceInfo(from, 0));
-
-        while (!qFrontier->empty())
+        while (!bag.empty())
         {
-            #pragma omp parallel
-            while(!qFrontier->empty())
+            unsigned long int bagSize = bag.size();
+#pragma omp parallel for
+            for(unsigned long int i = 0; i < bagSize; i++)
             {
-                DistanceInfo current = qFrontier->front();
-                qFrontier->pop();
+                std::vector<DistanceInfo> neighborBag;
+                DistanceInfo current = bag[i];
                 int64_t currentDistance = current.distance + 1;
 
                 for (Vertex *neighbor : graph.nodes[current.vertexId].edges_out)
@@ -62,7 +59,8 @@ public:
 
                     if (neighbor->id == to)
                     {
-                        return currentDistance;
+                        resultDistance = currentDistance;
+                        found = true;
                     }
 #ifdef USE_THREADS
                     if (neighbor->visited[thread_id] < query_id && neighbor->edges_out.size() > 0)
@@ -70,9 +68,9 @@ public:
                     if (neighbor->visited < query_id && neighbor->edges_out.size() > 0)
 #endif
                     {
-                        qNeighbor->push(DistanceInfo(neighbor->id, currentDistance));
+                        neighborBag.push_back(DistanceInfo(neighbor->id, currentDistance));
 #ifdef COLLECT_STATS
-                        BFS_QUEUE_MAX_SIZE = std::max(BFS_QUEUE_MAX_SIZE, qFrontier->size());
+                        BFS_QUEUE_MAX_SIZE = std::max(BFS_QUEUE_MAX_SIZE, bagSize);
 #endif
 #ifdef USE_THREADS
                         neighbor->visited[thread_id] = query_id;
@@ -81,11 +79,16 @@ public:
 #endif
                     }
                 }
+#pragma omp critical
+                {
+                    std::copy(neighborBag.begin(), neighborBag.end(), std::back_inserter(bag));
+                    neighborBag.clear();
+                }
             }
-            //swap Queues
-            swap = qFrontier;
-            qFrontier = qNeighbor;
-            qNeighbor = swap;
+            if (found) {
+                return resultDistance;
+            }
+            bag.erase(bag.begin(), bag.begin() + bagSize);
         }
 
         return -1;
