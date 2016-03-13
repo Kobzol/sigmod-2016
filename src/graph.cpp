@@ -56,6 +56,7 @@ void Graph::add_vertex(sigint num)
 {
     this->nodes.emplace(num, num);
     this->vertices.push_back(&this->nodes.at(num));
+    this->verticesIn.push_back(&this->nodes.at(num));
 }
 
 int64_t Graph::get_distance(sigint from, sigint to)
@@ -73,7 +74,12 @@ void Graph::rebuild()
        return lhs->edges_out.size() > rhs->edges_out.size();
     });
 
-    for (auto& kv : this->nodes)    // optimize: vector, sort by degree, two levels of landmarks
+    std::sort(this->verticesIn.begin(), this->verticesIn.end(), [](Vertex* lhs, Vertex* rhs)
+    {
+        return lhs->edges_in.size() > rhs->edges_in.size();
+    });
+
+    for (auto& kv : this->nodes)    // optimize: vector, two levels of landmarks
     {
         Vertex& vertex = kv.second;
         vertex.landmarks_in.clear();
@@ -82,8 +88,8 @@ void Graph::rebuild()
 
     for (size_t i = 0; i < this->vertices.size(); i++)
     {
-        this->label_bfs(*this->vertices[i]);
         this->label_bfs_in(*this->vertices[i]);
+        this->label_bfs(*this->vertices[i]);
     }
 }
 
@@ -108,7 +114,7 @@ void Graph::label_bfs(Vertex& vertex)
             continue;
         }
 
-        di.vertex->landmarks_in.emplace(vertex.id, di.distance);
+        di.vertex->landmarks_in.emplace_back(this->visit_id, di.distance);
 
         for (Vertex* edge : di.vertex->edges_out)
         {
@@ -141,7 +147,7 @@ void Graph::label_bfs_in(Vertex& vertex)
             continue;
         }
 
-        di.vertex->landmarks_out.emplace(vertex.id, di.distance);
+        di.vertex->landmarks_out.emplace_back(this->visit_id, di.distance);
 
         for (Vertex* edge : di.vertex->edges_in)
         {
@@ -158,11 +164,27 @@ int64_t Graph::query(Vertex& src, Vertex& dest)
 {
     int minimumDistance = INT32_MAX;
 
-    for (auto& kv : src.landmarks_out)
+    size_t outSize = src.landmarks_out.size();
+    size_t inSize = dest.landmarks_in.size();
+
+    for (size_t i = 0, j = 0; i < outSize && j < inSize;)
     {
-        if (dest.landmarks_in.count(kv.first))
+        Landmark& srcLandmark = src.landmarks_out[i];
+        Landmark& destLandmark = dest.landmarks_in[j];
+
+        if (srcLandmark.id == destLandmark.id)
         {
-            minimumDistance = std::min(minimumDistance, kv.second.distance + dest.landmarks_in[kv.first].distance);
+            minimumDistance = std::min(minimumDistance,
+                                       srcLandmark.distance + destLandmark.distance);
+            i++, j++;
+        }
+        else if (srcLandmark.id < destLandmark.id)
+        {
+            i++;
+        }
+        else
+        {
+            j++;
         }
     }
 

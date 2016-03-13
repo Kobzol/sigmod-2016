@@ -27,6 +27,7 @@ public:
 
     std::map<sigint, Vertex> nodes;
     std::vector<Vertex*> vertices;
+    std::vector<Vertex*> verticesIn;
 
 private:
     Graph(const Graph& other) = delete;

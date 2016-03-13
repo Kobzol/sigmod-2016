@@ -13,11 +13,12 @@ struct Vertex;
 struct Landmark
 {
 public:
-    Landmark(int distance = 0) : distance(distance)
+    Landmark(size_t id, int distance = 0) : id(id), distance(distance)
     {
 
     }
 
+    size_t id;
     int distance;
 };
 
@@ -38,8 +39,8 @@ public:
     size_t visited;
     std::vector<Vertex*> edges_out;
     std::vector<Vertex*> edges_in;
-    std::unordered_map<sigint, Landmark> landmarks_out;
-    std::unordered_map<sigint, Landmark> landmarks_in;
+    std::vector<Landmark> landmarks_out;
+    std::vector<Landmark> landmarks_in;
 };
 
 struct DistanceInfo
