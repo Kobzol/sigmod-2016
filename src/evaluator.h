@@ -39,7 +39,7 @@ public:
             return -1;
         }
 #endif
-        std::vector<DistanceInfo> bag;
+        std::vector<DistanceInfo> bag, neighborBag;
         bag.push_back(DistanceInfo(from, 0));
         bool found = false;
         int64_t resultDistance = 0;
@@ -47,10 +47,9 @@ public:
         while (!bag.empty())
         {
             unsigned long int bagSize = bag.size();
-#pragma omp parallel for
+#pragma omp parallel for private(neighborBag)
             for(unsigned long int i = 0; i < bagSize; i++)
             {
-                std::vector<DistanceInfo> neighborBag;
                 DistanceInfo current = bag[i];
                 int64_t currentDistance = current.distance + 1;
 
@@ -79,12 +78,15 @@ public:
 #endif
                     }
                 }
+
 #pragma omp critical
                 {
-                    std::copy(neighborBag.begin(), neighborBag.end(), std::back_inserter(bag));
+                    bag.insert(bag.end(), neighborBag.begin(), neighborBag.end());
                     neighborBag.clear();
                 }
+
             }
+
             if (found) {
                 return resultDistance;
             }
