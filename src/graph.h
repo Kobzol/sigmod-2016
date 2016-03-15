@@ -18,6 +18,7 @@ public:
     void add_edge(sigint from, sigint to);
     void remove_edge(sigint from, sigint to);
     void rebuild();
+    void sort();
     int64_t get_distance(sigint from, sigint to);
 
     inline bool has_vertex(sigint id)
@@ -27,7 +28,6 @@ public:
 
     std::map<sigint, Vertex> nodes;
     std::vector<Vertex*> vertices;
-    std::vector<Vertex*> verticesIn;
 
 private:
     Graph(const Graph& other) = delete;
@@ -36,7 +36,7 @@ private:
     void add_vertex(sigint id);
     void label_bfs(Vertex& vertex);
     void label_bfs_in(Vertex& vertex);
-    int64_t query(Vertex& src, Vertex& dest);
+    int query(Vertex& src, Vertex& dest);
 
     size_t visit_id;
 };

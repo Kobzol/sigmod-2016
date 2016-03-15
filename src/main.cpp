@@ -49,13 +49,8 @@ int main()
 
     size_t job_id = 1;
 
-    size_t timer = clock();
+    graph.sort();
     graph.rebuild();
-    timer = clock() - timer;
-
-    std::cout << (timer / (double) CLOCKS_PER_SEC) << std::endl;
-
-    return 0;
 
     bool graphClean = true;
 

@@ -13,13 +13,14 @@ struct Vertex;
 struct Landmark
 {
 public:
-    Landmark(size_t id, int distance = 0) : id(id), distance(distance)
+    Landmark(size_t id, int32_t distance = 0, int32_t vertexId = 0) : id(id), distance(distance), vertexId(vertexId)
     {
 
     }
 
     size_t id;
-    int distance;
+    int32_t distance;
+    int32_t vertexId;
 };
 
 struct Vertex
@@ -46,11 +47,11 @@ public:
 struct DistanceInfo
 {
 public:
-    DistanceInfo(Vertex* vertex, size_t distance) : vertex(vertex), distance(distance)
+    DistanceInfo(Vertex* vertex, int distance) : vertex(vertex), distance(distance)
     {
 
     }
 
     Vertex* vertex;
-    size_t distance;
+    int distance;
 };

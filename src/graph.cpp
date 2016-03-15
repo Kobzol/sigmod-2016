@@ -56,7 +56,6 @@ void Graph::add_vertex(sigint num)
 {
     this->nodes.emplace(num, num);
     this->vertices.push_back(&this->nodes.at(num));
-    this->verticesIn.push_back(&this->nodes.at(num));
 }
 
 int64_t Graph::get_distance(sigint from, sigint to)
@@ -67,35 +66,47 @@ int64_t Graph::get_distance(sigint from, sigint to)
     return this->query(this->nodes.at(from), this->nodes.at(to));
 }
 
-void Graph::rebuild()
+void Graph::sort()
 {
     std::sort(this->vertices.begin(), this->vertices.end(), [](Vertex* lhs, Vertex* rhs)
     {
-       return lhs->edges_out.size() > rhs->edges_out.size();
+        return lhs->edges_out.size() > rhs->edges_out.size();
     });
+}
 
-    std::sort(this->verticesIn.begin(), this->verticesIn.end(), [](Vertex* lhs, Vertex* rhs)
+void Graph::rebuild()
+{
+    for (size_t i = 0; i < this->vertices.size(); i++)
     {
-        return lhs->edges_in.size() > rhs->edges_in.size();
-    });
-
-    for (auto& kv : this->nodes)    // optimize: vector, two levels of landmarks
-    {
-        Vertex& vertex = kv.second;
-        vertex.landmarks_in.clear();
-        vertex.landmarks_out.clear();
+        this->vertices[i]->landmarks_out.clear();
+        this->vertices[i]->landmarks_in.clear();
     }
 
     for (size_t i = 0; i < this->vertices.size(); i++)
     {
-        this->label_bfs_in(*this->vertices[i]);
         this->label_bfs(*this->vertices[i]);
+        this->label_bfs_in(*this->vertices[i]);
     }
 }
 
 void Graph::label_bfs(Vertex& vertex)
 {
     this->visit_id++;
+
+    bool fullQuery = true;
+    std::vector<int32_t> paths;
+
+    if (vertex.landmarks_out.size() >= HEURISTIC_FULL_QUERY_COUNT)
+    {
+        paths.resize(this->vertices.size(), UINT32_MAX);
+
+        for (Landmark& landmark : vertex.landmarks_out)
+        {
+            paths[landmark.vertexId] = landmark.distance;
+        }
+
+        fullQuery = false;
+    }
 
     std::queue<DistanceInfo> q;
     q.push(DistanceInfo(&vertex, 0));
@@ -107,14 +118,26 @@ void Graph::label_bfs(Vertex& vertex)
         DistanceInfo di = q.front();
         q.pop();
 
-        size_t distance = (size_t) this->query(vertex, *di.vertex);
+        int minimumDistance = UINT32_MAX;
+        if (fullQuery)
+        {
+            minimumDistance = this->query(vertex, *di.vertex);
+        }
+        else
+        {
+            for (Landmark& landmark : di.vertex->landmarks_in)
+            {
+                minimumDistance = std::min(minimumDistance, paths[landmark.vertexId] + landmark.distance);
+                if (minimumDistance == 1) break;
+            }
+        }
 
-        if (distance <= di.distance)
+        if (minimumDistance <= di.distance)
         {
             continue;
         }
 
-        di.vertex->landmarks_in.emplace_back(this->visit_id, di.distance);
+        di.vertex->landmarks_in.emplace_back(this->visit_id, di.distance, vertex.id);
 
         for (Vertex* edge : di.vertex->edges_out)
         {
@@ -130,6 +153,21 @@ void Graph::label_bfs_in(Vertex& vertex)
 {
     this->visit_id++;
 
+    bool fullQuery = true;
+    std::vector<int32_t> paths;
+
+    if (vertex.landmarks_out.size() >= HEURISTIC_FULL_QUERY_COUNT)
+    {
+        paths.resize(this->vertices.size(), UINT32_MAX);
+
+        for (Landmark& landmark : vertex.landmarks_in)
+        {
+            paths[landmark.vertexId] = landmark.distance;
+        }
+
+        fullQuery = false;
+    }
+
     std::queue<DistanceInfo> q;
     q.push(DistanceInfo(&vertex, 0));
 
@@ -140,14 +178,26 @@ void Graph::label_bfs_in(Vertex& vertex)
         DistanceInfo di = q.front();
         q.pop();
 
-        size_t distance = (size_t) this->query(*di.vertex, vertex);
+        int minimumDistance = UINT32_MAX;
+        if (fullQuery)
+        {
+            minimumDistance = this->query(vertex, *di.vertex);
+        }
+        else
+        {
+            for (Landmark& landmark : di.vertex->landmarks_out)
+            {
+                minimumDistance = std::min(minimumDistance, paths[landmark.vertexId] + landmark.distance);
+                if (minimumDistance == 1) break;
+            }
+        }
 
-        if (distance <= di.distance)
+        if (minimumDistance <= di.distance)
         {
             continue;
         }
 
-        di.vertex->landmarks_out.emplace_back(this->visit_id, di.distance);
+        di.vertex->landmarks_out.emplace_back(this->visit_id, di.distance, vertex.id);
 
         for (Vertex* edge : di.vertex->edges_in)
         {
@@ -160,7 +210,7 @@ void Graph::label_bfs_in(Vertex& vertex)
     }
 }
 
-int64_t Graph::query(Vertex& src, Vertex& dest)
+int Graph::query(Vertex& src, Vertex& dest)
 {
     int minimumDistance = INT32_MAX;
 
@@ -176,6 +226,12 @@ int64_t Graph::query(Vertex& src, Vertex& dest)
         {
             minimumDistance = std::min(minimumDistance,
                                        srcLandmark.distance + destLandmark.distance);
+
+            if (minimumDistance == 1)
+            {
+                return 1;
+            }
+
             i++, j++;
         }
         else if (srcLandmark.id < destLandmark.id)

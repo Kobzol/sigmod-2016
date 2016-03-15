@@ -26,6 +26,9 @@ typedef uint32_t sigint;
 // povolí použití thread poolu
 //#define USE_THREADS
 
+// od kolikati hran se přepne na předpočítání cest u BFS při tvorbě indexu (dobrá hodnota 40-50)
+#define HEURISTIC_FULL_QUERY_COUNT (40)
+
 // počet vláken v thread poolu pro grafové operace
 #define THREAD_POOL_THREAD_COUNT (4)
 
