@@ -33,12 +33,10 @@ private:
     Graph& operator=(const Graph& other) = delete;
 
     void add_vertex(sigint id);
-    void label_bfs(Vertex& vertex);
-    void label_bfs_in(Vertex& vertex);
+    void label_bfs_uni(Vertex& vertex, bool forward);
     int query(Vertex& src, Vertex& dest);
 
     std::vector<int32_t> paths;
-    std::queue<DistanceInfo> queue;
 
     size_t visit_id;
 };

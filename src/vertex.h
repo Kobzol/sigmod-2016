@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstring>
 #include <unordered_map>
+#include <atomic>
 
 #include "settings.h"
 
@@ -26,9 +27,18 @@ public:
 struct Vertex
 {
 public:
-    Vertex(sigint id = 0) : id(id), visited(0)
+    Vertex(sigint id = 0) : id(id)
     {
-
+        this->visited.store(0);
+    }
+    Vertex(const Vertex& other)
+    {
+        this->id = other.id;
+        this->visited.store(0);
+        this->edges_out = std::move(other.edges_out);
+        this->edges_in = std::move(other.edges_in);
+        this->landmarks_out = std::move(other.landmarks_out);
+        this->landmarks_in = std::move(other.landmarks_in);
     }
 
     bool operator<(const Vertex& other)
@@ -37,7 +47,7 @@ public:
     }
 
     sigint id;
-    size_t visited;
+    std::atomic<size_t> visited;
     std::vector<Vertex*> edges_out;
     std::vector<Vertex*> edges_in;
     std::vector<Landmark> landmarks_out;

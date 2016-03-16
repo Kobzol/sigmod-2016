@@ -1,4 +1,3 @@
-#include <cassert>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -6,6 +5,7 @@
 #include <unordered_set>
 #include <map>
 #include <stack>
+#include <omp.h>
 
 #include "graph.h"
 #include "thread_pool.h"
@@ -19,6 +19,8 @@ ThreadPool threadPool;
 
 int main()
 {
+    omp_set_num_threads(THREAD_POOL_THREAD_COUNT);
+
     std::ios::sync_with_stdio(true);
 
 #ifdef REDIRECT_TEST_FILE_TO_INPUT
@@ -50,11 +52,12 @@ int main()
     size_t job_id = 1;
     size_t query_id = 0;
 
-    clock_t timer = clock();
+    auto timer = std::chrono::system_clock::now();
     graph.sort();
     graph.rebuild();
+    auto end = std::chrono::system_clock::now();
 
-    std::cout << (clock() - timer) / (double) CLOCKS_PER_SEC << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - timer).count() << std::endl;
     return 0;
 
     bool graphClean = true;

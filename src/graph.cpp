@@ -3,6 +3,8 @@
 #include <queue>
 #include <iostream>
 #include <algorithm>
+#include <omp.h>
+#include <atomic>
 
 #include "util.h"
 
@@ -90,104 +92,86 @@ void Graph::rebuild()
 
     for (size_t i = 0; i < this->vertices.size(); i++)
     {
-        this->label_bfs(*this->vertices[i]);
-        this->label_bfs_in(*this->vertices[i]);
+        this->label_bfs_uni(*this->vertices[i], true);
+        this->label_bfs_uni(*this->vertices[i], false);
     }
 }
 
-void Graph::label_bfs(Vertex& vertex)
+void Graph::label_bfs_uni(Vertex& vertex, bool forward)
 {
     this->visit_id++;
+    size_t bfs_id = forward ? this->visit_id : this->visit_id - 1;
 
-    for (Landmark& landmark : vertex.landmarks_out)
+    for (Landmark& landmark : (forward ? vertex.landmarks_out : vertex.landmarks_in))
     {
         this->paths[landmark.vertexId] = landmark.distance;
     }
 
-    //std::queue<DistanceInfo> q;
-    this->queue.push(DistanceInfo(&vertex, 0));
-
     vertex.visited = this->visit_id;
 
-    while (!this->queue.empty())
+    std::vector<DistanceInfo> bag;
+    std::vector<DistanceInfo> bag2;
+    auto* currentBag = &bag;
+    auto* nextBag = &bag2;
+    nextBag->push_back(DistanceInfo(&vertex, 0));
+
+    size_t threadCount = THREAD_POOL_THREAD_COUNT;
+    std::vector<std::vector<DistanceInfo>> bags(threadCount, std::vector<DistanceInfo>());
+
+    while (!nextBag->empty())
     {
-        DistanceInfo di = this->queue.front();
-        this->queue.pop();
+        currentBag->clear();
+        std::swap(currentBag, nextBag);
+        const size_t bagSize = currentBag->size();
+        size_t part = (size_t) std::ceil(bagSize / (double) threadCount);
 
-        int minimumDistance = DISTANCE_NOT_FOUND;
-        for (Landmark& landmark : di.vertex->landmarks_in)
+#pragma omp parallel
         {
-            minimumDistance = std::min(minimumDistance, paths[landmark.vertexId] + landmark.distance);
-            if (minimumDistance == 1) break;
-        }
+            int threadId = omp_get_thread_num();
+            size_t start = threadId * part;
+            size_t end = std::min(bagSize, start + part);
 
-        if (minimumDistance <= di.distance)
-        {
-            continue;
-        }
-
-        di.vertex->landmarks_in.emplace_back(this->visit_id, di.distance, vertex.id);
-
-        for (Vertex* edge : di.vertex->edges_out)
-        {
-            if (edge->visited < this->visit_id)
+            for(size_t i = start; i < end; i++)
             {
-                edge->visited = this->visit_id;
-                this->queue.emplace(edge, di.distance + 1);
+                DistanceInfo& di = (*currentBag)[i];
+
+                int minimumDistance = DISTANCE_NOT_FOUND;
+                for (Landmark &landmark : (forward ? di.vertex->landmarks_in : di.vertex->landmarks_out))
+                {
+                    minimumDistance = std::min(minimumDistance, paths[landmark.vertexId] + landmark.distance);
+                    if (minimumDistance == 1) break;
+                }
+
+                if (minimumDistance <= di.distance)
+                {
+                    continue;
+                }
+
+                if (forward)
+                {
+                    di.vertex->landmarks_in.emplace_back(bfs_id, di.distance, vertex.id);
+                }
+                else di.vertex->landmarks_out.emplace_back(bfs_id, di.distance, vertex.id);
+
+                for (Vertex *edge : (forward ? di.vertex->edges_out : di.vertex->edges_in))
+                {
+                    size_t previous = edge->visited.exchange(this->visit_id);
+                    if (previous < this->visit_id)
+                    {
+                        bags[threadId].emplace_back(edge, di.distance + 1);
+                    }
+                }
             }
-        }
-    }
 
-    for (Landmark& landmark : vertex.landmarks_out)
-    {
-        this->paths[landmark.vertexId] = DISTANCE_NOT_FOUND;
-    }
-}
-
-void Graph::label_bfs_in(Vertex& vertex)
-{
-    this->visit_id++;
-
-    for (Landmark& landmark : vertex.landmarks_in)
-    {
-        this->paths[landmark.vertexId] = landmark.distance;
-    }
-
-    //std::queue<DistanceInfo> q;
-    this->queue.push(DistanceInfo(&vertex, 0));
-
-    vertex.visited = this->visit_id;
-
-    while (!this->queue.empty())
-    {
-        DistanceInfo di = this->queue.front();
-        this->queue.pop();
-
-        int minimumDistance = DISTANCE_NOT_FOUND;
-        for (Landmark &landmark : di.vertex->landmarks_out)
-        {
-            minimumDistance = std::min(minimumDistance, paths[landmark.vertexId] + landmark.distance);
-            if (minimumDistance == 1) break;
-        }
-
-        if (minimumDistance <= di.distance)
-        {
-            continue;
-        }
-
-        di.vertex->landmarks_out.emplace_back(this->visit_id - 1, di.distance, vertex.id);
-
-        for (Vertex* edge : di.vertex->edges_in)
-        {
-            if (edge->visited < this->visit_id)
+#pragma omp critical
             {
-                edge->visited = this->visit_id;
-                this->queue.emplace(edge, di.distance + 1);
+                nextBag->insert(nextBag->end(), bags[threadId].begin(), bags[threadId].end());
             }
+            bags[threadId].clear();
         }
     }
 
-    for (Landmark& landmark : vertex.landmarks_in)
+    for (Landmark& landmark : (forward ? vertex.landmarks_out : vertex.landmarks_in))
     {
         this->paths[landmark.vertexId] = DISTANCE_NOT_FOUND;
     }
