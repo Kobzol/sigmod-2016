@@ -3,8 +3,8 @@
 /*
  * TODO:
  * Bulk loading
- * Časová razítka u hran - základ hotov
  * Komponenty (Union Find) - základní implementace hotova, přidat restrukturalizaci po mazání
+ * Index - bitové operace, časová razítka, paralelizace rebuildu
  * */
 
 
@@ -26,8 +26,8 @@ typedef uint32_t sigint;
 // povolí použití thread poolu
 //#define USE_THREADS
 
-// od kolikati hran se přepne na předpočítání cest u BFS při tvorbě indexu (dobrá hodnota 40-50)
-#define HEURISTIC_FULL_QUERY_COUNT (40)
+// konstanta označující, že vzdálenost nebyla nalezena
+#define DISTANCE_NOT_FOUND (INT32_MAX / 2)
 
 // počet vláken v thread poolu pro grafové operace
 #define THREAD_POOL_THREAD_COUNT (4)

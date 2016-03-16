@@ -48,9 +48,14 @@ int main()
     query_list.reserve(10000);
 
     size_t job_id = 1;
+    size_t query_id = 0;
 
+    clock_t timer = clock();
     graph.sort();
     graph.rebuild();
+
+    std::cout << (clock() - timer) / (double) CLOCKS_PER_SEC << std::endl;
+    return 0;
 
     bool graphClean = true;
 
@@ -91,6 +96,23 @@ int main()
                     graph.rebuild();
                     graphClean = true;
                 }
+
+                if (query_id == 16)
+                {
+                    std::cout << "Info for query from " << from << " to " << to << std::endl;
+                    for (Landmark& l : graph.nodes.at(from).landmarks_out)
+                    {
+                        std::cout << l.vertexId << ": " << l.distance << std::endl;
+                    }
+
+                    std::cout << std::endl;
+
+                    for (Landmark& l : graph.nodes.at(to).landmarks_in)
+                    {
+                        std::cout << l.vertexId << ": " << l.distance << std::endl;
+                    }
+                }
+                query_id++;
                 std::cout << graph.get_distance(from, to) << std::endl;
             }
                 break;
