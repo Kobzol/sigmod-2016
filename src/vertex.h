@@ -46,6 +46,7 @@ public:
 
     sigint id;
     std::vector<Edge> edges_out;
+    std::vector<Edge> edges_in;
 #ifdef USE_THREADS
     sigint visited[THREAD_POOL_THREAD_COUNT];
 #else

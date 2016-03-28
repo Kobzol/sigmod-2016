@@ -32,6 +32,7 @@ void Graph::add_edge(sigint from, sigint to)
     Vertex& src = this->nodes.at(from);
 
     src.edges_out.emplace_back(&dest, 0, (size_t) -1);
+    dest.edges_in.emplace_back(&src, 0, (size_t) -1);
 #ifdef USE_UNION_FIND
     src.join(*this, dest);
 #endif
@@ -52,6 +53,7 @@ void Graph::add_edge_stamp(sigint from, sigint to, size_t job_id)
     Vertex& src = this->nodes.at(from);
 
     src.edges_out.emplace_back(&dest, job_id, (size_t) -1);
+    dest.edges_in.emplace_back(&src, job_id, (size_t) -1);
 #ifdef USE_UNION_FIND
     src.join(*this, dest);
 #endif
@@ -59,7 +61,7 @@ void Graph::add_edge_stamp(sigint from, sigint to, size_t job_id)
 
 void Graph::remove_edge_stamp(sigint from, sigint to, size_t job_id)
 {
-    if (!this->has_vertex(from)) return;
+    if (!this->has_vertex(from) || !this->has_vertex(to)) return;
 
     std::vector<Edge>& edges = this->nodes.at(from).edges_out;
     Vertex* address = &this->nodes.at(to);
@@ -67,6 +69,17 @@ void Graph::remove_edge_stamp(sigint from, sigint to, size_t job_id)
     for (Edge& edge : edges)
     {
         if (edge.neighbor == address)
+        {
+            edge.to = job_id;
+        }
+    }
+
+    std::vector<Edge>& edgesInverse = this->nodes.at(to).edges_in;
+    Vertex* addressInverse = &this->nodes.at(from);
+
+    for (Edge& edge : edgesInverse)
+    {
+        if (edge.neighbor == addressInverse)
         {
             edge.to = job_id;
         }

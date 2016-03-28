@@ -89,7 +89,7 @@ int main()
             continue;
         }
 
-        job_id++;
+        job_id += 2;
 
         std::stringstream ss(line);
         char action;
