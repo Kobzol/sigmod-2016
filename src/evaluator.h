@@ -80,11 +80,11 @@ class GraphEvaluator
 public:
     static int64_t query(sigint from, sigint to, size_t query_id, size_t thread_id)
     {
-        if (!graph.has_vertex(from) || !graph.has_vertex(to)) return -1;
         if (from == to) return 0;
+        if (!graph.has_vertex(from) || !graph.has_vertex(to)) return -1;
 
 #ifdef USE_UNION_FIND
-        if (graph.nodes[from].get_parent(graph) != graph.nodes[to].get_parent(graph))
+        if (graph.nodes.at(from).get_parent(graph) != graph.nodes.at(to).get_parent(graph))
         {
 #ifdef COLLECT_STATS
             UNION_HITS++;

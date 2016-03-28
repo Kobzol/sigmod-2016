@@ -25,6 +25,7 @@ public:
     }
 
     std::unordered_map<sigint, Vertex> nodes;
+    std::vector<Vertex*> vertices;
     size_t non_unique = 0;
 
 private:

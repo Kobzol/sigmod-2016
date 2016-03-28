@@ -25,7 +25,7 @@ ThreadPool threadPool;
 
 int main()
 {
-    std::ios::sync_with_stdio(true);
+    std::ios::sync_with_stdio(false);
 
 #ifdef REDIRECT_TEST_FILE_TO_INPUT
     std::ifstream soubor("test/test-data.txt", std::ios::in);

@@ -14,4 +14,3 @@ debug: src/*.cpp
 
 clean:
 	rm -f $(TARGET)
-
