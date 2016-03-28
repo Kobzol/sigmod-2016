@@ -1,4 +1,5 @@
 #include "util.h"
+#include <stdexcept>
 
 void assert_throw(bool condition, const char* file, int line)
 {

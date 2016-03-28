@@ -1,10 +1,8 @@
 #include "graph.h"
 
-#include <queue>
 #include <iostream>
 #include <algorithm>
 #include <omp.h>
-#include <atomic>
 
 #include "util.h"
 
@@ -30,6 +28,122 @@ void Graph::add_edge(sigint from, sigint to)
     src.edges_out.push_back(&dest);
     dest.edges_in.push_back(&src);
 }
+void Graph::add_edge_index(sigint from, sigint to)
+{
+    if (from == to) return;
+    if (!this->has_vertex(from)) this->add_vertex(from);
+    if (!this->has_vertex(to)) this->add_vertex(to);
+
+    Vertex& src = this->nodes.at(from);
+    Vertex& dest = this->nodes.at(to);
+
+    src.edges_out.push_back(&dest);
+    dest.edges_in.push_back(&src);
+
+    size_t srcSize = src.landmarks_in.size();
+    size_t destSize = dest.landmarks_out.size();
+
+    for (size_t i = 0; i < srcSize; i++)
+    {
+        Landmark& landmark = src.landmarks_in[i];
+        Vertex& vertex = this->nodes.at(landmark.vertexId);
+        this->label_bfs_resume(landmark.id, vertex, dest, this->query(vertex, src) + 1, true);
+    }
+
+    for (size_t i = 0; i < destSize; i++)
+    {
+        Landmark& landmark = dest.landmarks_out[i];
+        Vertex& vertex = this->nodes.at(landmark.vertexId);
+        this->label_bfs_resume(landmark.id, vertex, src, this->query(dest, vertex) + 1, false);
+    }
+}
+
+void Graph::label_bfs_resume(size_t sourceIndex, Vertex& source, Vertex& node, int32_t distance, bool forward)
+{
+    this->visit_id++;
+
+    std::queue<DistanceInfo> q;
+    q.push(DistanceInfo(&node, distance));
+
+    while (!q.empty())
+    {
+        DistanceInfo di = q.front();
+        q.pop();
+
+        if (forward)
+        {
+            if (this->prefixalQuery(source, *di.vertex, sourceIndex) <= di.distance)
+            {
+                continue;
+            }
+        }
+        else
+        {
+            if (this->prefixalQuery(*di.vertex, source, sourceIndex) <= di.distance)
+            {
+                continue;
+            }
+        }
+
+        if (forward)
+        {
+            di.vertex->landmarks_in.emplace_back(sourceIndex, di.distance, source.id);
+        }
+        else di.vertex->landmarks_out.emplace_back(sourceIndex, di.distance, source.id);
+
+        for (Vertex* edge : forward ? di.vertex->edges_out : di.vertex->edges_in)
+        {
+            if (edge->visited < this->visit_id)
+            {
+                edge->visited.store(this->visit_id);
+                q.emplace(edge, di.distance + 1);
+            }
+        }
+    }
+}
+
+int32_t Graph::prefixalQuery(Vertex& src, Vertex& dest, size_t maxIndex)
+{
+    int32_t minimumDistance = DISTANCE_NOT_FOUND;
+
+    size_t outSize = src.landmarks_out.size();
+    size_t inSize = dest.landmarks_in.size();
+
+    for (size_t i = 0, j = 0; i < outSize && j < inSize;)
+    {
+        Landmark& srcLandmark = src.landmarks_out[i];
+        Landmark& destLandmark = dest.landmarks_in[j];
+
+        if (srcLandmark.id > maxIndex || destLandmark.id > maxIndex)
+        {
+            return DISTANCE_NOT_FOUND;
+        }
+
+        if (srcLandmark.id == destLandmark.id)
+        {
+            minimumDistance = std::min(minimumDistance,
+                                       srcLandmark.distance + destLandmark.distance);
+
+            if (minimumDistance == 1)
+            {
+                return 1;
+            }
+
+            i++, j++;
+        }
+        else if (srcLandmark.id < destLandmark.id)
+        {
+            i++;
+        }
+        else
+        {
+            j++;
+        }
+    }
+
+    return minimumDistance;
+}
+
 void Graph::remove_edge(sigint from, sigint to)
 {
     if (from == to) return;
@@ -63,12 +177,12 @@ void Graph::add_vertex(sigint num)
     this->vertices.push_back(&this->nodes.at(num));
 }
 
-int Graph::get_distance(sigint from, sigint to)
+int32_t Graph::get_distance(sigint from, sigint to)
 {
     if (from == to) return 0;
     if (!this->has_vertex(from) || !this->has_vertex(to)) return -1;
 
-    int distance = this->query(this->nodes.at(from), this->nodes.at(to));
+    int32_t distance = this->query(this->nodes.at(from), this->nodes.at(to));
     return distance == DISTANCE_NOT_FOUND ? -1 : distance;
 }
 
@@ -135,7 +249,7 @@ void Graph::label_bfs_uni(Vertex& vertex, bool forward)
             {
                 DistanceInfo& di = (*currentBag)[i];
 
-                int minimumDistance = DISTANCE_NOT_FOUND;
+                int32_t minimumDistance = DISTANCE_NOT_FOUND;
                 for (Landmark &landmark : (forward ? di.vertex->landmarks_in : di.vertex->landmarks_out))
                 {
                     minimumDistance = std::min(minimumDistance, paths[landmark.vertexId] + landmark.distance);
@@ -177,9 +291,9 @@ void Graph::label_bfs_uni(Vertex& vertex, bool forward)
     }
 }
 
-int Graph::query(Vertex& src, Vertex& dest)
+int32_t Graph::query(Vertex& src, Vertex& dest)
 {
-    int minimumDistance = DISTANCE_NOT_FOUND;
+    int32_t minimumDistance = DISTANCE_NOT_FOUND;
 
     size_t outSize = src.landmarks_out.size();
     size_t inSize = dest.landmarks_in.size();

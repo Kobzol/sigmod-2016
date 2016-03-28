@@ -57,11 +57,11 @@ public:
 struct DistanceInfo
 {
 public:
-    DistanceInfo(Vertex* vertex, int distance) : vertex(vertex), distance(distance)
+    DistanceInfo(Vertex* vertex, int32_t distance) : vertex(vertex), distance(distance)
     {
 
     }
 
     Vertex* vertex;
-    int distance;
+    int32_t distance;
 };

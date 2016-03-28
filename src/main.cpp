@@ -9,6 +9,7 @@
 
 #include "graph.h"
 #include "thread_pool.h"
+#include "util.h"
 
 Graph graph;
 size_t batch_id = 0;
@@ -52,12 +53,15 @@ int main()
     size_t job_id = 1;
     size_t query_id = 0;
 
-    auto timer = std::chrono::system_clock::now();
+    Timer timer;
     graph.sort();
     graph.rebuild();
-    auto end = std::chrono::system_clock::now();
+    timer.print("Index build");
 
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(end - timer).count() << std::endl;
+    timer.start();
+    graph.add_edge_index(graph.nodes[rand() % graph.nodes.size()].id, graph.nodes[rand() % graph.nodes.size()].id);
+    timer.print("Edge add");
+
     return 0;
 
     bool graphClean = true;
@@ -83,7 +87,7 @@ int main()
             case 'A':
             {
                 graphClean = false;
-                graph.add_edge(from, to);
+                graph.add_edge_index(from, to);
             }
                 break;
             case 'D':
