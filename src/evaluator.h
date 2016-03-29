@@ -4,25 +4,10 @@
 
 #include "settings.h"
 #include "graph.h"
+#include "cQueue.h"
 
 extern Graph graph;
 
-#ifdef COLLECT_STATS
-extern size_t UNION_HITS;
-extern size_t BFS_QUEUE_MAX_SIZE;
-#endif
-
-struct DistanceInfo
-{
-public:
-    DistanceInfo(Vertex* vertex, sigint distance) : vertex(vertex), distance(distance)
-    {
-
-    }
-
-    Vertex* vertex;
-    sigint distance;
-};
 
 #define DIR_FORWARD (0)
 #define DIR_FORWARD_NEXT (1)
@@ -34,7 +19,10 @@ public:
 #define BFS_FOUND_DIRECT (1)
 #define BFS_FOUND_BIDIR (2)
 
-static int advanceBFS(int* nodeCounter, int direction, std::queue<Vertex*>& queue, sigint to, size_t query_id,
+static cQueue<Vertex*>* QueuesOut[THREAD_POOL_THREAD_COUNT];
+static cQueue<Vertex*>* QueuesIn[THREAD_POOL_THREAD_COUNT];
+
+static int advanceBFS(int* nodeCounter, int direction, cQueue<Vertex*>& queue, sigint to, size_t query_id,
                    size_t thread_id)
 {
     size_t count = nodeCounter[direction];
@@ -43,8 +31,7 @@ static int advanceBFS(int* nodeCounter, int direction, std::queue<Vertex*>& queu
 
     for (size_t i = 0; i < count; i++)
     {
-        Vertex* vertex = queue.front();
-        queue.pop();
+        Vertex* vertex = *queue.Get();
 
         std::vector<Edge>& edges = direction == DIR_FORWARD ? vertex->edges_out : vertex->edges_in;
 
@@ -64,7 +51,7 @@ static int advanceBFS(int* nodeCounter, int direction, std::queue<Vertex*>& queu
                 }
                 if (visited < query_id)
                 {
-                    queue.emplace(edge.neighbor);
+                    queue.Put(edge.neighbor);
                     edge.neighbor->visited[thread_id] = visited_id;
                     nodeCounter[direction + 1]++;
                 }
@@ -78,6 +65,17 @@ static int advanceBFS(int* nodeCounter, int direction, std::queue<Vertex*>& queu
 class GraphEvaluator
 {
 public:
+    static void init()
+    {
+        const size_t queueSize = 1000000 * 10;
+
+        for (int i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
+        {
+            QueuesOut[i] = new cQueue<Vertex*>(queueSize);
+            QueuesIn[i] = new cQueue<Vertex*>(queueSize);
+        }
+    }
+
     static int64_t query(sigint from, sigint to, size_t query_id, size_t thread_id)
     {
         if (from == to) return 0;
@@ -93,12 +91,16 @@ public:
         }
 #endif
 
-        int nodeCounter[4] = { 1, 0, 1, 0 };
-        std::queue<Vertex*> queues[2];
-        queues[QUEUE_FORWARD].push(&graph.nodes.at(from));
-        queues[QUEUE_INVERSE].push(&graph.nodes.at(to));
+        QueuesIn[thread_id]->Reset();
+        QueuesOut[thread_id]->Reset();
 
-        thread_id--;
+        int nodeCounter[4] = { 1, 0, 1, 0 };
+        /*std::queue<Vertex*> queues[2];
+        queues[QUEUE_FORWARD].push(&graph.nodes.at(from));
+        queues[QUEUE_INVERSE].push(&graph.nodes.at(to));*/
+        QueuesOut[thread_id]->Put(&graph.nodes.at(from));
+        QueuesIn[thread_id]->Put(&graph.nodes.at(to));
+
         size_t pathLength = 1;
 
         while (true)
@@ -107,24 +109,24 @@ public:
 
             if (nodeCounter[DIR_FORWARD] < nodeCounter[DIR_INVERSE])
             {
-                distance = advanceBFS(nodeCounter, DIR_FORWARD, queues[QUEUE_FORWARD], to, query_id, thread_id);
+                distance = advanceBFS(nodeCounter, DIR_FORWARD, *QueuesOut[thread_id], to, query_id, thread_id);
                 if (distance == BFS_FOUND_DIRECT) return pathLength;
                 if (distance == BFS_FOUND_BIDIR) return pathLength * 2 - 1;
                 if (nodeCounter[DIR_FORWARD_NEXT] < 1) return -1;
 
-                distance = advanceBFS(nodeCounter, DIR_INVERSE, queues[QUEUE_INVERSE], from, query_id, thread_id);
+                distance = advanceBFS(nodeCounter, DIR_INVERSE, *QueuesIn[thread_id], from, query_id, thread_id);
                 if (distance == BFS_FOUND_DIRECT) return pathLength;
                 if (distance == BFS_FOUND_BIDIR) return pathLength * 2;
                 if (nodeCounter[DIR_INVERSE_NEXT] < 1) return -1;
             }
             else
             {
-                distance = advanceBFS(nodeCounter, DIR_INVERSE, queues[QUEUE_INVERSE], from, query_id, thread_id);
+                distance = advanceBFS(nodeCounter, DIR_INVERSE, *QueuesIn[thread_id], from, query_id, thread_id);
                 if (distance == BFS_FOUND_DIRECT) return pathLength;
                 if (distance == BFS_FOUND_BIDIR) return pathLength * 2 - 1;
                 if (nodeCounter[DIR_INVERSE_NEXT] < 1) return -1;
 
-                distance = advanceBFS(nodeCounter, DIR_FORWARD, queues[QUEUE_FORWARD], to, query_id, thread_id);
+                distance = advanceBFS(nodeCounter, DIR_FORWARD, *QueuesOut[thread_id], to, query_id, thread_id);
                 if (distance == BFS_FOUND_DIRECT) return pathLength;
                 if (distance == BFS_FOUND_BIDIR) return pathLength * 2;
                 if (nodeCounter[DIR_FORWARD_NEXT] < 1) return -1;

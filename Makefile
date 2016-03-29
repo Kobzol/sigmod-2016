@@ -1,5 +1,5 @@
 TARGET=sigmod
-CPP_FLAGS=-std=c++11 -march=native -O2 -pthread -Wall -Wextra
+CPP_FLAGS=-std=c++11 -march=native -O2 -pthread -fopenmp -Wall -Wextra
 #-flto -Wl,--no-as-needed
 #-fno-rtti -fprefetch-loop-arrays
 CXX_COMPILER=g++

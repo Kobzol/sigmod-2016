@@ -4,7 +4,7 @@
 
 void Thread::thread_fn()
 {
-    while (!this->terminated)
+    /*while (!this->terminated)
     {
         std::unique_lock<std::mutex> lock(threadPool.jobLock);
 
@@ -17,7 +17,7 @@ void Thread::thread_fn()
 
         lock.unlock();
 
-        /*if (batch_id % (TIMESTAMP_NORMALIZE_RATE) == 0)
+        if (batch_id % (TIMESTAMP_NORMALIZE_RATE) == 0)
         {
             size_t maxTimestampEnd = (size_t) -1;
             size_t part = graph.vertices.size();
@@ -45,7 +45,7 @@ void Thread::thread_fn()
                     }
                 }
             }
-        }*/
+        }
 
         for (int i = 0; i < size; i++)
         {
@@ -60,5 +60,5 @@ void Thread::thread_fn()
         {
             this->batch++;
         }
-    }
+    }*/
 }

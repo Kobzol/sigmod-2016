@@ -6,6 +6,9 @@
 #include <map>
 #include <stack>
 #include <signal.h>
+#include <execinfo.h>
+#include <unistd.h>
+#include <omp.h>
 
 #include "graph.h"
 #include "thread_pool.h"
@@ -22,17 +25,15 @@ size_t BFS_QUEUE_MAX_SIZE = 0;
 #endif
 
 #ifdef USE_THREADS
-ThreadPool threadPool;
+//ThreadPool threadPool;
 #endif
-
-void on_sigsegv(int signal)
-{
-    std::cerr << "Sigsegv received on job " << job_id << std::endl;
-}
 
 int main()
 {
     std::ios::sync_with_stdio(false);
+    omp_set_num_threads(THREAD_POOL_THREAD_COUNT);
+
+    GraphEvaluator::init();
 
 #ifdef REDIRECT_TEST_FILE_TO_INPUT
     std::ifstream soubor("test/test-data.txt", std::ios::in);
@@ -40,8 +41,6 @@ int main()
 #else
     std::istream& vstup = std::cin;
 #endif
-
-    //signal(SIGSEGV, on_sigsegv);
 
     std::string line;
     while (std::getline(vstup, line))
@@ -68,30 +67,21 @@ int main()
     {
         if (line[0] == 'F')
         {
-            std::unique_lock<std::mutex> lock(threadPool.jobLock);
-            threadPool.jobs = &query_list;
-            threadPool.jobCV.notify_all();
+            size_t count = query_list.size();
 
-            lock.unlock();
-
-            std::stringstream ss;
-
-            for (size_t i = 0; i < query_list.size(); i++)
+#pragma omp parallel for schedule(dynamic, 1)
+            for (size_t i = 0; i < count; i++)
             {
-                while (query_list[i].result == JOB_NOT_DONE)
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                }
-
-                ss << query_list[i].result << std::endl;
+                Job& job = query_list[i];
+                query_list[i].result = GraphEvaluator::query(job.from, job.to, job.id, (size_t) omp_get_thread_num());
             }
 
-            std::cout << ss.rdbuf();
-
-            threadPool.reset_jobs();
+            for (size_t i = 0; i < count; i++)
+            {
+                std::cout << query_list[i].result << std::endl;
+            }
 
             query_list.clear();
-            batch_id++;
 
             continue;
         }
@@ -120,8 +110,6 @@ int main()
                 break;
         }
     }
-
-    std::cerr << "Batches done" << std::endl;
 
 #ifdef COLLECT_STATS
     std::cout << "BFS queue max size: " << BFS_QUEUE_MAX_SIZE << std::endl;

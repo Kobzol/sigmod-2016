@@ -26,6 +26,13 @@ public:
 
     void reset_jobs()
     {
+        for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
+        {
+            while (this->threads[i].batch < 1)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
         this->jobs = nullptr;
         for (size_t i = 0; i < THREAD_POOL_THREAD_COUNT; i++)
         {

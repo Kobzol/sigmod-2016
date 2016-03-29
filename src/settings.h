@@ -36,4 +36,4 @@ typedef uint32_t sigint;
 //#define COLLECT_STATS
 
 // otevře test/test-data.txt a přesměruje jej na standardní vstup aplikace
-//#define REDIRECT_TEST_FILE_TO_INPUT
+#define REDIRECT_TEST_FILE_TO_INPUT
