@@ -5,12 +5,14 @@
 #include <unordered_set>
 #include <map>
 #include <stack>
+#include <signal.h>
 
 #include "graph.h"
 #include "thread_pool.h"
 
 Graph graph;
 size_t batch_id = 0;
+size_t job_id = 0;
 
 #ifdef COLLECT_STATS
 size_t UNION_HITS = 0;
@@ -23,6 +25,11 @@ size_t BFS_QUEUE_MAX_SIZE = 0;
 ThreadPool threadPool;
 #endif
 
+void on_sigsegv(int signal)
+{
+    std::cerr << "Sigsegv received on job " << job_id << std::endl;
+}
+
 int main()
 {
     std::ios::sync_with_stdio(false);
@@ -33,6 +40,8 @@ int main()
 #else
     std::istream& vstup = std::cin;
 #endif
+
+    //signal(SIGSEGV, on_sigsegv);
 
     std::string line;
     while (std::getline(vstup, line))
@@ -49,8 +58,6 @@ int main()
             graph.add_edge(from, to);
         }
     }
-
-    size_t job_id = 0;
 
     std::vector<Job> query_list;
     query_list.reserve(10000);
@@ -113,6 +120,8 @@ int main()
                 break;
         }
     }
+
+    std::cerr << "Batches done" << std::endl;
 
 #ifdef COLLECT_STATS
     std::cout << "BFS queue max size: " << BFS_QUEUE_MAX_SIZE << std::endl;

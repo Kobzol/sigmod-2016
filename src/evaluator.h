@@ -101,18 +101,34 @@ public:
         thread_id--;
         size_t pathLength = 1;
 
-        while (!queues[QUEUE_FORWARD].empty() && !queues[QUEUE_INVERSE].empty())
+        while (true)
         {
             int distance;
-            distance = advanceBFS(nodeCounter, DIR_FORWARD, queues[QUEUE_FORWARD], to, query_id, thread_id);
-            if (distance == BFS_FOUND_DIRECT) return pathLength;
-            if (distance == BFS_FOUND_BIDIR) return pathLength * 2 - 1;
-            if (nodeCounter[DIR_FORWARD_NEXT] < 1) return -1;
 
-            distance = advanceBFS(nodeCounter, DIR_INVERSE, queues[QUEUE_INVERSE], from, query_id, thread_id);
-            if (distance == BFS_FOUND_DIRECT) return pathLength;
-            if (distance == BFS_FOUND_BIDIR) return pathLength * 2;
-            if (nodeCounter[DIR_INVERSE_NEXT] < 1) return -1;
+            if (nodeCounter[DIR_FORWARD] < nodeCounter[DIR_INVERSE])
+            {
+                distance = advanceBFS(nodeCounter, DIR_FORWARD, queues[QUEUE_FORWARD], to, query_id, thread_id);
+                if (distance == BFS_FOUND_DIRECT) return pathLength;
+                if (distance == BFS_FOUND_BIDIR) return pathLength * 2 - 1;
+                if (nodeCounter[DIR_FORWARD_NEXT] < 1) return -1;
+
+                distance = advanceBFS(nodeCounter, DIR_INVERSE, queues[QUEUE_INVERSE], from, query_id, thread_id);
+                if (distance == BFS_FOUND_DIRECT) return pathLength;
+                if (distance == BFS_FOUND_BIDIR) return pathLength * 2;
+                if (nodeCounter[DIR_INVERSE_NEXT] < 1) return -1;
+            }
+            else
+            {
+                distance = advanceBFS(nodeCounter, DIR_INVERSE, queues[QUEUE_INVERSE], from, query_id, thread_id);
+                if (distance == BFS_FOUND_DIRECT) return pathLength;
+                if (distance == BFS_FOUND_BIDIR) return pathLength * 2 - 1;
+                if (nodeCounter[DIR_INVERSE_NEXT] < 1) return -1;
+
+                distance = advanceBFS(nodeCounter, DIR_FORWARD, queues[QUEUE_FORWARD], to, query_id, thread_id);
+                if (distance == BFS_FOUND_DIRECT) return pathLength;
+                if (distance == BFS_FOUND_BIDIR) return pathLength * 2;
+                if (nodeCounter[DIR_FORWARD_NEXT] < 1) return -1;
+            }
 
             pathLength++;
             nodeCounter[DIR_FORWARD] = nodeCounter[DIR_FORWARD_NEXT];
@@ -120,7 +136,5 @@ public:
             nodeCounter[DIR_INVERSE] = nodeCounter[DIR_INVERSE_NEXT];
             nodeCounter[DIR_INVERSE_NEXT] = 0;
         }
-
-        return -1;
     }
 };
