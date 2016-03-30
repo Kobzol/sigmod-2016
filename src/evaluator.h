@@ -84,9 +84,6 @@ public:
 #ifdef USE_UNION_FIND
         if (graph.nodes.at(from).get_parent(graph) != graph.nodes.at(to).get_parent(graph))
         {
-#ifdef COLLECT_STATS
-            UNION_HITS++;
-#endif
             return -1;
         }
 #endif

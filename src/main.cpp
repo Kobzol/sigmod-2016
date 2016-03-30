@@ -17,13 +17,6 @@ Graph graph;
 size_t batch_id = 0;
 size_t job_id = 0;
 
-#ifdef COLLECT_STATS
-size_t UNION_HITS = 0;
-size_t QUERY_COUNT = 0;
-std::map<int64_t, size_t> QUERY_RESULTS;
-size_t BFS_QUEUE_MAX_SIZE = 0;
-#endif
-
 #ifdef USE_THREADS
 //ThreadPool threadPool;
 #endif
@@ -69,12 +62,36 @@ int main()
         {
             size_t count = query_list.size();
 
-#pragma omp parallel for schedule(dynamic, 1)
-            for (size_t i = 0; i < count; i++)
+#if THREAD_SCHEDULE == THREAD_SCHEDULE_STATIC
+            size_t part = (count / THREAD_POOL_THREAD_COUNT) + 1;
+
+#pragma omp parallel
             {
-                Job& job = query_list[i];
-                query_list[i].result = GraphEvaluator::query(job.from, job.to, job.id, (size_t) omp_get_thread_num());
+                size_t thread_id = (size_t) omp_get_thread_num();
+                size_t start = part * thread_id;
+                size_t end = std::min(count, start + part);
+
+                for (size_t i = start; i < end; i++)
+                {
+                    Job& job = query_list[i];
+                    query_list[i].result = GraphEvaluator::query(job.from, job.to, job.id, thread_id);
+                }
             }
+#elif THREAD_SCHEDULE == THREAD_SCHEDULE_DYNAMIC
+#pragma omp parallel
+            {
+                size_t thread_id = (size_t) omp_get_thread_num();
+
+                for (size_t i = 0; i < count; i++)
+                {
+                    Job& job = query_list[i];
+                    if (!job.available.test_and_set())
+                    {
+                        query_list[i].result = GraphEvaluator::query(job.from, job.to, job.id, thread_id);
+                    }
+                }
+            }
+#endif
 
             for (size_t i = 0; i < count; i++)
             {
@@ -110,18 +127,6 @@ int main()
                 break;
         }
     }
-
-#ifdef COLLECT_STATS
-    std::cout << "BFS queue max size: " << BFS_QUEUE_MAX_SIZE << std::endl;
-    std::cout << "Pocet dotazu: " << QUERY_COUNT << std::endl;
-    std::cout << "Pocet union hitu: " << UNION_HITS << std::endl;
-
-    std::cout << "Histogram vysledku dotazu: " << std::endl;
-    for (auto& pair : QUERY_RESULTS)
-    {
-        std::cout << "Vysledek " << pair.first << " byl nalezen " << pair.second << "x" << std::endl;
-    }
-#endif
 
     // threads are detached, so they die with the main thread
     //threadPool.terminate();

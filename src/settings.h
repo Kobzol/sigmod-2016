@@ -27,13 +27,16 @@ typedef uint32_t sigint;
 #define USE_THREADS
 
 // počet vláken v thread poolu pro grafové operace
-#define THREAD_POOL_THREAD_COUNT (4)
+#define THREAD_POOL_THREAD_COUNT (1)
 
 // co kolik dávek se mají normalizovat časová razítka
 #define TIMESTAMP_NORMALIZE_RATE (10)
 
-// zaznamena a vypise statistiky prubehu programu (zatím pouze pro singlethreaded verzi)
-//#define COLLECT_STATS
+#define THREAD_SCHEDULE_DYNAMIC (0)
+#define THREAD_SCHEDULE_STATIC (1)
+
+// jak se budou rozdelovat joby mezi vlakny
+#define THREAD_SCHEDULE THREAD_SCHEDULE_DYNAMIC
 
 // otevře test/test-data.txt a přesměruje jej na standardní vstup aplikace
-#define REDIRECT_TEST_FILE_TO_INPUT
+//#define REDIRECT_TEST_FILE_TO_INPUT
