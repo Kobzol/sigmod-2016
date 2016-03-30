@@ -11,8 +11,10 @@ extern Graph graph;
 
 #define DIR_FORWARD (0)
 #define DIR_FORWARD_NEXT (1)
-#define DIR_INVERSE (2)
-#define DIR_INVERSE_NEXT (3)
+#define DIR_FORWARD_NEXT_HEURISTIC (2)
+#define DIR_INVERSE (3)
+#define DIR_INVERSE_NEXT (4)
+#define DIR_INVERSE_NEXT_HEURISTIC (5)
 #define QUEUE_FORWARD (0)
 #define QUEUE_INVERSE (1)
 #define BFS_NOT_FOUND (-1)
@@ -55,6 +57,7 @@ static int advanceBFS(int* nodeCounter, int direction, cQueue<Vertex*>& queue, s
                     queue.Put(neighbor);
                     neighbor->visited[thread_id] = visited_id;
                     nodeCounter[direction + 1]++;
+                    nodeCounter[direction + 2] += (direction == DIR_FORWARD ? neighbor->edges_out.size() : neighbor->edges_in.size());
                 }
             }
         }
@@ -92,7 +95,7 @@ public:
         QueuesIn[thread_id]->Reset();
         QueuesOut[thread_id]->Reset();
 
-        int nodeCounter[4] = { 1, 0, 1, 0 };
+        int nodeCounter[6] = { 1, 0, 0, 1, 0, 0 };
         QueuesOut[thread_id]->Put(&graph.nodes.at(from));
         QueuesIn[thread_id]->Put(&graph.nodes.at(to));
 
@@ -101,10 +104,11 @@ public:
         while (true)
         {
             int distance;
-
-            if (nodeCounter[DIR_FORWARD] < nodeCounter[DIR_INVERSE])
+            if ((nodeCounter[DIR_FORWARD] + nodeCounter[DIR_FORWARD_NEXT_HEURISTIC]) <
+                        (nodeCounter[DIR_INVERSE] + nodeCounter[DIR_INVERSE_NEXT_HEURISTIC]))
             {
                 pathLength++;
+                nodeCounter[DIR_FORWARD_NEXT_HEURISTIC] = 0;
                 distance = advanceBFS(nodeCounter, DIR_FORWARD, *QueuesOut[thread_id], to, query_id, thread_id);
                 if (distance != BFS_NOT_FOUND) return pathLength + pathLengthInv;
                 if (nodeCounter[DIR_FORWARD_NEXT] < 1) return -1;
@@ -115,6 +119,7 @@ public:
             else
             {
                 pathLengthInv++;
+                nodeCounter[DIR_INVERSE_NEXT_HEURISTIC] = 0;
                 distance = advanceBFS(nodeCounter, DIR_INVERSE, *QueuesIn[thread_id], from, query_id, thread_id);
                 if (distance != BFS_NOT_FOUND) return pathLength + pathLengthInv;
                 if (nodeCounter[DIR_INVERSE_NEXT] < 1) return -1;
