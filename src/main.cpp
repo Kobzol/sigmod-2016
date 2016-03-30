@@ -22,7 +22,7 @@ int main()
 {
     omp_set_num_threads(THREAD_POOL_THREAD_COUNT);
 
-    std::ios::sync_with_stdio(true);
+    std::ios::sync_with_stdio(false);
 
 #ifdef REDIRECT_TEST_FILE_TO_INPUT
     std::ifstream soubor("test/test-data.txt", std::ios::in);
@@ -58,14 +58,6 @@ int main()
     graph.rebuild();
     timer.print("Index build");
 
-    timer.start();
-    graph.add_edge_index(graph.nodes[rand() % graph.nodes.size()].id, graph.nodes[rand() % graph.nodes.size()].id);
-    timer.print("Edge add");
-
-    return 0;
-
-    bool graphClean = true;
-
     std::cout << "R" << std::endl;  // TIMER STARTS
 
     while (std::getline(vstup, line))
@@ -86,39 +78,16 @@ int main()
         {
             case 'A':
             {
-                graphClean = false;
                 graph.add_edge_index(from, to);
             }
                 break;
             case 'D':
             {
-                graphClean = false;
                 graph.remove_edge(from, to);
             }
                 break;
             case 'Q':
             {
-                if (!graphClean)
-                {
-                    graph.rebuild();
-                    graphClean = true;
-                }
-
-                if (query_id == 16)
-                {
-                    std::cout << "Info for query from " << from << " to " << to << std::endl;
-                    for (Landmark& l : graph.nodes.at(from).landmarks_out)
-                    {
-                        std::cout << l.vertexId << ": " << l.distance << std::endl;
-                    }
-
-                    std::cout << std::endl;
-
-                    for (Landmark& l : graph.nodes.at(to).landmarks_in)
-                    {
-                        std::cout << l.vertexId << ": " << l.distance << std::endl;
-                    }
-                }
                 query_id++;
                 std::cout << graph.get_distance(from, to) << std::endl;
             }

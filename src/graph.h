@@ -41,6 +41,8 @@ private:
     int32_t prefixalQuery(Vertex& src, Vertex& dest, size_t maxIndex);
     int32_t query(Vertex& src, Vertex& dest);
 
+    void invalidateIndices(Vertex& source, bool forward);
+
     std::vector<int32_t> paths;
 
     size_t visit_id;

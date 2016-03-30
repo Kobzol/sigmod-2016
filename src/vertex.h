@@ -14,7 +14,8 @@ struct Vertex;
 struct Landmark
 {
 public:
-    Landmark(size_t id, int32_t distance = 0, sigint vertexId = 0) : id(id), distance(distance), vertexId(vertexId)
+    Landmark(size_t id, int32_t distance = 0, sigint vertexId = 0, bool active = true)
+            : id(id), distance(distance), vertexId(vertexId), active(active)
     {
 
     }
@@ -22,6 +23,19 @@ public:
     size_t id;
     int32_t distance;
     sigint vertexId;
+    bool active;
+};
+
+struct Edge
+{
+public:
+    Edge(Vertex* vertex) : vertex(vertex)
+    {
+
+    }
+
+    Vertex* vertex;
+    std::vector<Vertex*> affectedVertices;
 };
 
 struct Vertex
@@ -48,8 +62,8 @@ public:
 
     sigint id;
     std::atomic<size_t> visited;
-    std::vector<Vertex*> edges_out;
-    std::vector<Vertex*> edges_in;
+    std::vector<Edge> edges_out;
+    std::vector<Edge> edges_in;
     std::vector<Landmark> landmarks_out;
     std::vector<Landmark> landmarks_in;
 };
@@ -57,11 +71,11 @@ public:
 struct DistanceInfo
 {
 public:
-    DistanceInfo(Vertex* vertex, int32_t distance) : vertex(vertex), distance(distance)
+    explicit DistanceInfo(int32_t distance, Edge* edge) : distance(distance), edge(edge)
     {
 
     }
 
-    Vertex* vertex;
     int32_t distance;
+    Edge* edge;
 };
