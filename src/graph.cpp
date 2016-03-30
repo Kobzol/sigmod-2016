@@ -53,14 +53,14 @@ void Graph::add_edge_index(sigint from, sigint to)
     {
         Landmark& landmark = src.landmarks_in[i];
         Vertex& vertex = this->nodes.at(landmark.vertexId);
-        this->label_bfs_resume(landmark.id, vertex, dest, this->query(vertex, src) + 1, true);
+        this->label_bfs_resume(landmark.id, vertex, dest, landmark.distance + 1, true);
     }
 
     for (size_t i = 0; i < destSize; i++)
     {
         Landmark& landmark = dest.landmarks_out[i];
         Vertex& vertex = this->nodes.at(landmark.vertexId);
-        this->label_bfs_resume(landmark.id, vertex, src, this->query(dest, vertex) + 1, false);
+        this->label_bfs_resume(landmark.id, vertex, src, landmark.distance + 1, false);
     }
 }
 void Graph::label_bfs_resume(size_t sourceIndex, Vertex& source, Vertex& node, int32_t distance, bool forward)
@@ -365,13 +365,23 @@ void Graph::label_bfs_uni(Vertex& vertex, bool forward)
                 Vertex* target = di.edge ? di.edge->vertex : &vertex;
 
                 int32_t minimumDistance = DISTANCE_NOT_FOUND;
-                for (Landmark &landmark : (forward ? target->landmarks_in : target->landmarks_out))
+                std::vector<Landmark>& landmarks = forward ? target->landmarks_in : target->landmarks_out;
+                int j = 0;
+                int index = -1;
+
+                for (Landmark &landmark : landmarks)
                 {
                     if (landmark.active)
                     {
                         minimumDistance = std::min(minimumDistance, paths[landmark.vertexId] + landmark.distance);
-                        if (minimumDistance == 1) break;
                     }
+
+                    if (landmark.id > bfs_id)
+                    {
+                        index = j;
+                    }
+
+                    j++;
                 }
 
                 if (minimumDistance <= di.distance)
@@ -384,18 +394,12 @@ void Graph::label_bfs_uni(Vertex& vertex, bool forward)
                     di.edge->affectedVertices.push_back(&vertex);   // save affected vertex
                 }
 
-                std::vector<Landmark>& landmarks = forward ? target->landmarks_in : target->landmarks_out;
-
-                size_t j = 0;
-                for (; j < landmarks.size(); j++)
+                if (index == -1)
                 {
-                    if (landmarks.at(j).id > bfs_id)
-                    {
-                        break;
-                    }
+                    index = (int) landmarks.size();
                 }
 
-                landmarks.insert(landmarks.begin() + j, Landmark(bfs_id, di.distance, vertex.id));
+                landmarks.insert(landmarks.begin() + index, Landmark(bfs_id, di.distance, vertex.id));
 
                 /*if (forward)
                 {
