@@ -78,18 +78,24 @@ int main()
         {
             case 'A':
             {
+                //timer.start("Add (" + std::to_string(from) + ", " + std::to_string(to) + ")");
                 graph.add_edge_index(from, to);
+                //timer.print("Add");
             }
                 break;
             case 'D':
             {
+                //timer.start("Remove (" + std::to_string(from) + ", " + std::to_string(to) + ")");
                 graph.remove_edge(from, to);
+                //timer.print("Remove");
             }
                 break;
             case 'Q':
             {
                 query_id++;
+                //timer.start("Query (" + std::to_string(from) + ", " + std::to_string(to) + ")");
                 std::cout << graph.get_distance(from, to) << std::endl;
+                //timer.print("Query");
             }
                 break;
             default:

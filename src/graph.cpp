@@ -70,39 +70,69 @@ void Graph::label_bfs_resume(size_t sourceIndex, Vertex& source, Vertex& node, i
     std::queue<DistanceInfo> q;
     q.push(DistanceInfo(distance, nullptr));
 
+    for (Landmark& landmark : (forward ? source.landmarks_out : source.landmarks_in))
+    {
+        if (landmark.active)
+        {
+            this->paths[landmark.vertexId] = landmark.distance;
+        }
+    }
+
     while (!q.empty())
     {
         DistanceInfo di = q.front();
         q.pop();
-        Vertex* targetVertex = di.edge ? di.edge->vertex : &node;
+        Vertex* target = di.edge ? di.edge->vertex : &node;
 
-        if (forward)
+        int32_t minimumDistance = DISTANCE_NOT_FOUND;
+        for (Landmark &landmark : (forward ? target->landmarks_in : target->landmarks_out))
         {
-            if (this->prefixalQuery(source, *targetVertex, sourceIndex) <= di.distance)
+            if (landmark.active)
+            {
+                minimumDistance = std::min(minimumDistance, paths[landmark.vertexId] + landmark.distance);
+                if (minimumDistance == 1) break;
+            }
+        }
+
+        if (minimumDistance <= di.distance)
+        {
+            continue;
+        }
+
+        /*if (forward)
+        {
+            if (this->prefixalQuery(source, *target, sourceIndex) <= di.distance)
             {
                 continue;
             }
         }
         else
         {
-            if (this->prefixalQuery(*targetVertex, source, sourceIndex) <= di.distance)
+            if (this->prefixalQuery(*target, source, sourceIndex) <= di.distance)
             {
                 continue;
             }
-        }
+        }*/
 
         if (di.edge)
         {
             di.edge->affectedVertices.push_back(&source);
         }
 
-        if (forward)
-        {
-            targetVertex->landmarks_in.emplace_back(source.id, di.distance, source.id);
-        }
-        else targetVertex->landmarks_out.emplace_back(source.id, di.distance, source.id);
+        std::vector<Landmark>& landmarks = forward ? target->landmarks_in : target->landmarks_out;
 
-        for (Edge& edge : forward ? targetVertex->edges_out : targetVertex->edges_in)
+        size_t j = 0;
+        for (; j < landmarks.size(); j++)
+        {
+            if (landmarks.at(j).id > source.id)
+            {
+                break;
+            }
+        }
+
+        landmarks.insert(landmarks.begin() + j, Landmark(source.id, di.distance, source.id));
+
+        for (Edge& edge : forward ? target->edges_out : target->edges_in)
         {
             if (edge.vertex->visited < this->visit_id)
             {
@@ -110,6 +140,11 @@ void Graph::label_bfs_resume(size_t sourceIndex, Vertex& source, Vertex& node, i
                 q.emplace(di.distance + 1, &edge);
             }
         }
+    }
+
+    for (Landmark& landmark : (forward ? source.landmarks_out : source.landmarks_in))
+    {
+        this->paths[landmark.vertexId] = DISTANCE_NOT_FOUND;
     }
 }
 int32_t Graph::prefixalQuery(Vertex& src, Vertex& dest, size_t maxIndex)
@@ -157,7 +192,7 @@ int32_t Graph::prefixalQuery(Vertex& src, Vertex& dest, size_t maxIndex)
 void Graph::remove_edge(sigint from, sigint to)
 {
     if (from == to) return;
-    if (!this->has_vertex(from)) return;
+    if (!this->has_vertex(from) || !this->has_vertex(to)) return;
 
     Vertex& dest = this->nodes.at(to);
     Vertex& src = this->nodes.at(from);
@@ -226,11 +261,13 @@ void Graph::invalidateIndices(Vertex &source, bool forward)
         Vertex* vertex = queue.front();
         queue.pop();
 
-        for (Landmark& landmark : (forward ? vertex->landmarks_in : vertex->landmarks_out))
+        std::vector<Landmark>& landmarks = forward ? vertex->landmarks_in : vertex->landmarks_out;
+        for (size_t i = 0; i < landmarks.size(); i++)
         {
-            if (landmark.vertexId == affectedId)
+            if (landmarks.at(i).vertexId == affectedId)
             {
-                landmark.active = false;
+                landmarks.erase(landmarks.begin() + i);
+                i--;
             }
         }
 
@@ -347,11 +384,24 @@ void Graph::label_bfs_uni(Vertex& vertex, bool forward)
                     di.edge->affectedVertices.push_back(&vertex);   // save affected vertex
                 }
 
-                if (forward)
+                std::vector<Landmark>& landmarks = forward ? target->landmarks_in : target->landmarks_out;
+
+                size_t j = 0;
+                for (; j < landmarks.size(); j++)
+                {
+                    if (landmarks.at(j).id > bfs_id)
+                    {
+                        break;
+                    }
+                }
+
+                landmarks.insert(landmarks.begin() + j, Landmark(bfs_id, di.distance, vertex.id));
+
+                /*if (forward)
                 {
                     target->landmarks_in.emplace_back(bfs_id, di.distance, vertex.id);
                 }
-                else target->landmarks_out.emplace_back(bfs_id, di.distance, vertex.id);
+                else target->landmarks_out.emplace_back(bfs_id, di.distance, vertex.id);*/
 
                 for (Edge& edge : (forward ? target->edges_out : target->edges_in))
                 {
@@ -383,15 +433,6 @@ int32_t Graph::query(Vertex& src, Vertex& dest)
 
     size_t outSize = src.landmarks_out.size();
     size_t inSize = dest.landmarks_in.size();
-
-    std::sort(src.landmarks_out.begin(), src.landmarks_out.end(), [](const Landmark& lhs, const Landmark& rhs)
-    {
-       return lhs.id < rhs.id;
-    });
-    std::sort(dest.landmarks_in.begin(), dest.landmarks_in.end(), [](const Landmark& lhs, const Landmark& rhs)
-    {
-        return lhs.id < rhs.id;
-    });
 
     for (size_t i = 0, j = 0; i < outSize && j < inSize;)
     {

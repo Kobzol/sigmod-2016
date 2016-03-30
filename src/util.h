@@ -18,9 +18,14 @@ public:
         return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - this->timer).count();
     }
 
-    void start()
+    void start(std::string note="")
     {
         this->timer = std::chrono::steady_clock::now();
+
+        if (note != "")
+        {
+            std::cout << "Starting: " << note << std::endl;
+        }
     }
     void print(std::string note="")
     {
