@@ -12,15 +12,15 @@ struct Vertex;
 struct Edge
 {
 public:
-    Edge(Vertex* neighbor=nullptr, size_t from=0, size_t to=(size_t) -1)
+    Edge(Vertex* neighbor=nullptr, unsigned int from=0, unsigned int to=(unsigned int) -1)
             : neighbor(neighbor), from(from), to(to)
     {
 
     }
 
     Vertex* neighbor;
-    size_t from;
-    size_t to;
+    unsigned int from;
+    unsigned int to;
 };
 
 
@@ -58,6 +58,6 @@ public:
     void join(Graph& graph, Vertex& vertex);
 
     sigint parent;
-    size_t rank;
+    sigint rank;
 #endif
 };

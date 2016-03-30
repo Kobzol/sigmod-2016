@@ -39,20 +39,21 @@ static int advanceBFS(int* nodeCounter, int direction, cQueue<Vertex*>& queue, s
         {
             if (edge.from < query_id && edge.to > query_id)
             {
-                if (edge.neighbor->id == to)
+                Vertex* neighbor = edge.neighbor;
+                if (neighbor->id == to)
                 {
                     return BFS_FOUND_DIRECT;
                 }
 
-                sigint visited = edge.neighbor->visited[thread_id];
+                sigint visited = neighbor->visited[thread_id];
                 if (visited == visited_other_id)
                 {
                     return BFS_FOUND_BIDIR;
                 }
                 if (visited < query_id)
                 {
-                    queue.Put(edge.neighbor);
-                    edge.neighbor->visited[thread_id] = visited_id;
+                    queue.Put(neighbor);
+                    neighbor->visited[thread_id] = visited_id;
                     nodeCounter[direction + 1]++;
                 }
             }
@@ -92,13 +93,10 @@ public:
         QueuesOut[thread_id]->Reset();
 
         int nodeCounter[4] = { 1, 0, 1, 0 };
-        /*std::queue<Vertex*> queues[2];
-        queues[QUEUE_FORWARD].push(&graph.nodes.at(from));
-        queues[QUEUE_INVERSE].push(&graph.nodes.at(to));*/
         QueuesOut[thread_id]->Put(&graph.nodes.at(from));
         QueuesIn[thread_id]->Put(&graph.nodes.at(to));
 
-        size_t pathLength = 1;
+        size_t pathLength = 0, pathLengthInv = 0;
 
         while (true)
         {
@@ -106,34 +104,24 @@ public:
 
             if (nodeCounter[DIR_FORWARD] < nodeCounter[DIR_INVERSE])
             {
+                pathLength++;
                 distance = advanceBFS(nodeCounter, DIR_FORWARD, *QueuesOut[thread_id], to, query_id, thread_id);
-                if (distance == BFS_FOUND_DIRECT) return pathLength;
-                if (distance == BFS_FOUND_BIDIR) return pathLength * 2 - 1;
+                if (distance != BFS_NOT_FOUND) return pathLength + pathLengthInv;
                 if (nodeCounter[DIR_FORWARD_NEXT] < 1) return -1;
 
-                distance = advanceBFS(nodeCounter, DIR_INVERSE, *QueuesIn[thread_id], from, query_id, thread_id);
-                if (distance == BFS_FOUND_DIRECT) return pathLength;
-                if (distance == BFS_FOUND_BIDIR) return pathLength * 2;
-                if (nodeCounter[DIR_INVERSE_NEXT] < 1) return -1;
+                nodeCounter[DIR_FORWARD] = nodeCounter[DIR_FORWARD_NEXT];
+                nodeCounter[DIR_FORWARD_NEXT] = 0;
             }
             else
             {
+                pathLengthInv++;
                 distance = advanceBFS(nodeCounter, DIR_INVERSE, *QueuesIn[thread_id], from, query_id, thread_id);
-                if (distance == BFS_FOUND_DIRECT) return pathLength;
-                if (distance == BFS_FOUND_BIDIR) return pathLength * 2 - 1;
+                if (distance != BFS_NOT_FOUND) return pathLength + pathLengthInv;
                 if (nodeCounter[DIR_INVERSE_NEXT] < 1) return -1;
 
-                distance = advanceBFS(nodeCounter, DIR_FORWARD, *QueuesOut[thread_id], to, query_id, thread_id);
-                if (distance == BFS_FOUND_DIRECT) return pathLength;
-                if (distance == BFS_FOUND_BIDIR) return pathLength * 2;
-                if (nodeCounter[DIR_FORWARD_NEXT] < 1) return -1;
+                nodeCounter[DIR_INVERSE] = nodeCounter[DIR_INVERSE_NEXT];
+                nodeCounter[DIR_INVERSE_NEXT] = 0;
             }
-
-            pathLength++;
-            nodeCounter[DIR_FORWARD] = nodeCounter[DIR_FORWARD_NEXT];
-            nodeCounter[DIR_FORWARD_NEXT] = 0;
-            nodeCounter[DIR_INVERSE] = nodeCounter[DIR_INVERSE_NEXT];
-            nodeCounter[DIR_INVERSE_NEXT] = 0;
         }
     }
 };

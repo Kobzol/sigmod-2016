@@ -41,7 +41,6 @@ void Graph::add_edge(sigint from, sigint to)
 void Graph::add_vertex(sigint num)
 {
     this->nodes.emplace(num, num);
-    //this->vertices.push_back(&this->nodes.at(num));
 }
 
 void Graph::add_edge_stamp(sigint from, sigint to, size_t job_id)
