@@ -12,6 +12,7 @@
 
 #include "graph.h"
 #include "thread_pool.h"
+#include "util.h"
 
 Graph graph;
 size_t batch_id = 0;
@@ -54,6 +55,10 @@ int main()
     std::vector<Job> query_list;
     query_list.reserve(10000);
 
+#ifdef USE_INDEX
+    graph.build_index();
+#endif
+
     std::cout << "R" << std::endl;  // TIMER STARTS
 
     while (std::getline(vstup, line))
@@ -87,7 +92,15 @@ int main()
                     Job& job = query_list[i];
                     if (!job.available.test_and_set())
                     {
+#ifdef USE_INDEX
+                        if (graph.is_connected(graph.nodes.at(job.from), graph.nodes.at(job.to)))
+                        {
+                            query_list[i].result = GraphEvaluator::query(job.from, job.to, job.id, thread_id);
+                        }
+                        else query_list[i].result = -1;
+#else
                         query_list[i].result = GraphEvaluator::query(job.from, job.to, job.id, thread_id);
+#endif
                     }
                 }
             }

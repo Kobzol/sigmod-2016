@@ -23,6 +23,18 @@ public:
     unsigned int to;
 };
 
+struct Landmark
+{
+public:
+    Landmark(int id, Vertex* vertex) : id(id), vertex(vertex)
+    {
+
+    }
+
+    int id;
+    Vertex* vertex;
+};
+
 
 struct Vertex
 {
@@ -46,9 +58,16 @@ public:
 
     std::vector<Edge> edges_out;
     std::vector<Edge> edges_in;
+
+#ifdef USE_INDEX
+    std::vector<Landmark> landmarks_out;
+    std::vector<Landmark> landmarks_in;
+    int bfs_id = -1;
+#endif
+
     sigint id;
 #ifdef USE_THREADS
-    sigint visited[THREAD_POOL_THREAD_COUNT];
+    sigint visited[THREAD_POOL_THREAD_COUNT + 1];
 #else
     sigint visited;
 #endif
